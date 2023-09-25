@@ -16,6 +16,15 @@ This will load the DCASE annotations and treat all positive annotations of AMRE 
 
 This will use the scaper source data files, and generate train_soundscapes and test_soundscapes. The soundscapes directories will contain (*.wav, *.txt) file pairs, where the timings of the foreground event is annotated in the *.txt files. Please see the source code for further details on the soundscape generation process.
 
+## Extract the embeddings
+
+Setup the BirdNET-Analyzer v2.4 (https://github.com/kahst/BirdNET-Analyzer).
+
+    python embeddings.py --i ./scaper_source_files/BV/AMRE/train_soundscapes/ --o ./scaper_source_files/BV/AMRE/train_soundscapes/ --threads 8 --batchsize 16 --overlap 0
+
+This will generate the embeddings and store them in the same directory. Embeddings are for 3 second segments with the specified overlap.
+    
+
 ## Background
 
 0. Define 10 interesting scenes.
