@@ -21,21 +21,7 @@ This will use the scaper source data files, and generate train_soundscapes and t
 Setup the BirdNET-Analyzer v2.4 (https://github.com/kahst/BirdNET-Analyzer).
 
     python embeddings.py --i ./scaper_source_files/BV/AMRE/train_soundscapes/ --o ./scaper_source_files/BV/AMRE/train_soundscapes/ --threads 8 --batchsize 16 --overlap 0
+    python embeddings.py --i ./scaper_source_files/BV/AMRE/train_soundscapes/ --o ./scaper_source_files/BV/AMRE/train_soundscapes/ --threads 8 --batchsize 16 --overlap 0
 
-This will generate the embeddings and store them in the same directory. Embeddings are for 3 second segments with the specified overlap.
+This will generate the embeddings for the train_soundscapes and the test_soundscapes and store them in the respective directory. Embeddings are for 3 second segments with the specified overlap.
     
-
-## Background
-
-0. Define 10 interesting scenes.
-1. Collect background sounds from Aporee.
-
-    wind forest -bird -birds
-   
-   
-   
-## Foreground
-
-1. Collect foreground sounds.
-2. BirdCLEF?
-3. 
