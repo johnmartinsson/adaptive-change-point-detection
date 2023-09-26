@@ -3,19 +3,25 @@ import scaper
 import numpy as np
 import soundfile as sf
 import glob
+import argparse
+
+parser = argparse.ArgumentParser(description='A data generation script.')
+parser.add_argument('--data_dir', help='The data dir containing the train and test source directories', required=True, type=str)
+parser.add_argument('--snr', help='The signal-to-noise ratio', required=True, type=float)
+args = parser.parse_args()
 
 for split in ['train', 'test']:
     print("Generating {} soundscapes ...".format(split))
 
     # OUTPUT FOLDER
-    outfolder = os.path.join('./soundscapes/', split)
+    outfolder = '{}/{}_soundscapes_snr_{}/'.format(args.data_dir, split, args.snr)
 
     if not os.path.exists(outfolder):
         os.makedirs(outfolder)
 
     # SCAPER SETTINGS
-    fg_folder = 'soundscapes/ME_22050Hz_source_material/{}/foreground/'.format(split)
-    bg_folder = 'soundscapes/ME_22050Hz_source_material/{}/background/'.format(split)
+    fg_folder = '{}/{}_source/foreground/'.format(args.data_dir, split)
+    bg_folder = '{}/{}_source/background/'.format(args.data_dir, split)
 
     # get and set the average background loudness
     lufss = []
@@ -28,28 +34,28 @@ for split in ['train', 'test']:
     print("LUFS average = {}".format(average_lufs))
     ref_db = average_lufs
 
-    n_soundscapes = 5
+    n_soundscapes = 20
     duration = 10.0 
 
-    min_events = 3
+    min_events = 2
     max_events = 3
 
     source_time_dist = 'const'
     source_time = 0.0
 
     event_duration_dist = 'uniform'
-    event_duration_min = 0.5 #0.1
-    event_duration_max = 0.5 #0.3
+    event_duration_min = 10 #0.1
+    event_duration_max = 10 #0.3
 
     event_time_dist = 'uniform'
     event_time_min = 0
-    event_time_max = 10-event_duration_max
+    event_time_max = duration-event_duration_max
 
 
 
     snr_dist = 'uniform'
-    snr_min = -10
-    snr_max = 10
+    snr_min = args.snr
+    snr_max = args.snr
 
     pitch_dist = 'uniform'
     pitch_min = 0 #-3.0
@@ -68,7 +74,7 @@ for split in ['train', 'test']:
         print('Generating soundscape: {:d}/{:d}'.format(n+1, n_soundscapes))
         
         # create a scaper
-        sc = scaper.Scaper(duration, fg_folder, bg_folder)
+        sc = scaper.Scaper(duration, fg_folder, bg_folder, random_state=42)
         sc.protected_labels = []
         sc.ref_db = ref_db
         
@@ -97,15 +103,15 @@ for split in ['train', 'test']:
         sc.generate(audiofile, jamsfile,
                     allow_repeated_label=True,
                     allow_repeated_source=False,
-                    reverb=0.1,
+                    reverb=0.1, # TODO: what does this do?
                     disable_sox_warnings=True,
                     no_audio=False,
                     txt_path=txtfile)
    
     txt_paths = glob.glob(os.path.join(outfolder, "*.txt"))
-    print("#########################################################")
+    #print("#########################################################")
     header = "Audiofilename,\t\tStarttime,\t\tEndtime,\t\tClass\n"
-    print(header)
+    #print(header)
     with open(os.path.join(outfolder, "annotations.csv"), 'w') as fw:
         fw.write(header)
         for txt_path in txt_paths:
@@ -115,4 +121,4 @@ for split in ['train', 'test']:
                 for line in lines:
                     l = "{},\t".format(wave_path) + ",\t".join(line.split('\t'))
                     fw.write(l)
-                    print(l)
+                    #print(l)
