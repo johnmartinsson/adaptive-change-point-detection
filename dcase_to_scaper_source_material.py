@@ -53,11 +53,11 @@ def write_background_events_to_dir(wave_path, class_name, annotations, dir_path,
 
         sf.write(os.path.join(class_dir, "{}_{}.wav".format(basename, idx)), background_segment, sample_rate)
 
-def dcase_to_scaper_source_material(csv_paths, fg_dir, bg_dir):
+def dcase_to_scaper_source_material(csv_paths, fg_dir, bg_dir, class_name):
     for csv_path in csv_paths:
         n_shots = 1000000
-        pos_anns = stats_utils.get_positive_annotations(csv_path, n_shots=n_shots, class_name='Q', expand=0.0)
-        neg_anns = stats_utils.get_gap_annotations(csv_path, n_shots=n_shots, class_name='Q')
+        pos_anns = stats_utils.get_positive_annotations(csv_path, n_shots=n_shots, class_name=class_name, expand=0.0)
+        neg_anns = stats_utils.get_gap_annotations(csv_path, n_shots=n_shots, class_name=class_name)
 
         assert(len(pos_anns) < n_shots)
         assert(len(neg_anns) < n_shots)
@@ -70,22 +70,33 @@ def main():
     parser = argparse.ArgumentParser(description='A data conversion script.')
     parser.add_argument('--data_dir', help='The data dir containing (name.wav, name.csv) pairs', required=True, type=str)
     parser.add_argument('--scaper_dir', help='The data dir to write the foreground, background data', required=True, type=str)
+    parser.add_argument('--class_name', help='The name of the positive sound event class (rest treated as negative)', required=True, type=str)
     args = parser.parse_args()
 
     # create scaper dirs
-    fg_test_dir = os.path.join(args.scaper_dir, 'test', 'foreground')
-    bg_test_dir = os.path.join(args.scaper_dir, 'test', 'background')
-    fg_train_dir = os.path.join(args.scaper_dir, 'train', 'foreground')
-    bg_train_dir = os.path.join(args.scaper_dir, 'train', 'background')
+    fg_test_dir = os.path.join(args.scaper_dir, args.class_name, 'test_source', 'foreground')
+    bg_test_dir = os.path.join(args.scaper_dir, args.class_name, 'test_source', 'background')
+    fg_train_dir = os.path.join(args.scaper_dir, args.class_name, 'train_source', 'foreground')
+    bg_train_dir = os.path.join(args.scaper_dir, args.class_name, 'train_source', 'background')
 
     # split, read, convert, and write data
-    csv_paths = glob.glob(os.path.join(args.data_dir, '*.csv'))
+    _csv_paths = glob.glob(os.path.join(args.data_dir, '*.csv'))
+
+    csv_paths = []
+    for csv_path in _csv_paths:
+        df = pd.read_csv(csv_path)
+        if args.class_name in df.columns:
+            csv_paths.append(csv_path)
+    print(csv_paths)
+
+    assert(len(csv_paths) >= 2)
+
 
     n = len(csv_paths)
     train_csv_paths, test_csv_paths = csv_paths[n//2:], csv_paths[:n//2]
 
-    dcase_to_scaper_source_material(train_csv_paths, fg_train_dir, bg_train_dir)
-    dcase_to_scaper_source_material(test_csv_paths, fg_test_dir, bg_test_dir)
+    dcase_to_scaper_source_material(train_csv_paths, fg_train_dir, bg_train_dir, args.class_name)
+    dcase_to_scaper_source_material(test_csv_paths, fg_test_dir, bg_test_dir, args.class_name)
    
 if __name__ == '__main__':
     main()

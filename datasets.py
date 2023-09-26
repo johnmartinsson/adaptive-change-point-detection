@@ -1,88 +1,70 @@
 import os
-import torch
 import glob
+import numpy as np
 
-class SoundEventDetectionDataset(torch.utils.data.Dataset):
+def load_timings_and_embeddings(file_path, embedding_dim=1024):
+    timings_and_embeddings = []
+    with open(file_path, 'r') as f:
+        data = f.readlines()
+        for d in data:
+            _d = d.split('\t')
+            start_time = _d[0]
+            end_time = _d[1]
+            embedding = np.zeros(embedding_dim)
+            values = _d[2].split(',')
+            assert(len(embedding) == len(values))
+            for i, value in enumerate(values):
+                embedding[i] = float(value)
+            timings_and_embeddings.append((float(start_time), float(end_time), embedding))
+    return timings_and_embeddings
 
-    def __init__(self, config, data_dir):
-        pass
+class FixedQueryActiveLearningDataset:
+    def __init__(self, base_dir):
+        super(FixedQueryActiveLearningDataset, self).__init__()
+        embedding_file_paths = glob.glob(os.path.join(base_dir, '*.embeddings.txt'))
 
-    def __len__(self):
-        return len(self.x)
+        if len(embedding_file_paths) == 0:
+            raise ValueError("no embeddings files found: {}".format(base_dir))
 
-    def __getitem__(self, idx):
-        return self.x[idx], self.y[idx]
+        self.train_data = {}
+        self.labeled_train_data = {}
+        
+        # Thought: this becomes tricky for dynamic timings
+        for embedding_file_path in embedding_file_paths:
+            timings_and_embeddings = load_timings_and_embeddings(embedding_file_path)
+            self.train_data[os.path.basename(embedding_file_path).split('.')[0]] = timings_and_embeddings
+            self.labeled_train_data[os.path.basename(embedding_file_path).split('.')[0]] = np.zeros(len(timings_and_embeddings))-1
 
-class ActiveSoundEventDetectionDataset(torch.utils.data.Dataset):
+    def count_labeled(self):
+        count = 0
+        for key in self.labeled_train_data.keys():
+            indices = np.where(self.labeled_train_data[key] >= 0)[0]
+            count += len(indices)
+        return count
 
-    def __init__(self, config, data_dir):
-        self.wav_paths = glob.glob(os.path.join(data_dir, "*.wav"))
+    def count_unlabeled(self):
+        count = 0
+        for key in self.labeled_train_data.keys():
+            indices = np.where(self.labeled_train_data[key] == -1)[0]
+            count += len(indices)
+        return count
 
-        self.segment_size = config['segment_size']
+    def add_query_label(self, key, idx, label):
+        self.labeled_train_data[key][idx] = label
+    
+    def random_query(self):
+        queries = []
+        for key in self.labeled_train_data.keys():
+            indices = np.where(self.labeled_train_data[key] == -1)
+            for idx in indices[0]:
+                queries.append((key, idx))
 
-        self.wav_path_annotations = {}
-        for wav_path in wav_paths:
-            self.wav_path_to_annotations[wav_path] = []
+        query_idx = np.random.randint(len(queries))
+        (key, idx) = queries[query_idx]
+        
+        return (key, idx), self.train_data[key][idx]
 
-        # allocate arrays
-        self.xs = np.zeros(config['max_nb_segments'], config['segment_size'])
-        self.ys = np.zeros(config['max_nb_segments'])
-
-        self.last_batch_size = 0
-        self.total_segments  = 0
-
-    def __len__(self):
-        return len(self.x)
-
-    def __getitem__(self, idx):
-        return self.x[idx], self.y[idx]
-
-    def update(self, labels, wav_paths, timings):
-        print("Updating active learning dataset ...")
-        self.last_batch_size = 0
-        for idx in range(len(labels)):
-            wav_path               = wav_paths[idx]
-            label                  = labels[idx]
-            (start_time, end_time) = timings[idx]
-
-            # keep track of annotated timings
-            self.wav_path_to_annotations[wav_path].append((start_time, end_time, label))
-
-            # load the actual data
-            x_batch, y_batch = load_batch(wav_path, start_time, end_time, label, segment_size=self.segment_size)
-
-            self.xs[self.total_segments:self.total_segments+len(x_batch), :] = x_batch
-            self.ys[self.total_segments:self.total_segments+len(y_batch)] = y_batch
-
-            # increment the last batch size
-            self.last_batch_size += len(x_batch)
-            # increment the total segment count
-            self.total_segments += len(x_batch)
-
-    def get_unlabeled_timings(self):
-        return
-
-
-#class SyntheticBioacousticDataset(torch.utils.data.Dataset):
-#
-#    def __init__(self, split=='train', config):
-#
-#        csv_paths = glob.glob(os.path.join(config['data_dir'], "*.csv"))
-#
-#        n_csvs = len(csv_paths)
-#        train_paths, test_paths = csv_paths[:n_csvs//2], csv_paths[n_csvs//2:]
-#
-#        
-#        if split == 'train':
-#            self.x, self.y = self.load_data(train_paths)
-#        else:
-#            self.x, self.y = self.load_data(test_paths)
-#
-#    def load_data(self):
-#        return
-#
-#    def __len__(self):
-#        return len(self.x)
-#
-#    def __getitem__(self, idx):
-#        return self.x[idx], self.y[idx]
+class AdaptiveQueryActiveLearningDataset:
+    def __init__(self, base_dir):
+        raise ValueError("not yey implemented ...")
+        embedding_file_paths = glob.glob(os.path.join(base_dir, '*.embeddings.txt'))
