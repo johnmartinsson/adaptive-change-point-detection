@@ -10,7 +10,7 @@ parser.add_argument('--data_dir', help='The data dir containing the train and te
 parser.add_argument('--snr', help='The signal-to-noise ratio', required=True, type=float)
 args = parser.parse_args()
 
-for split in ['train', 'test']:
+for idx_split, split in enumerate(['train', 'test']):
     print("Generating {} soundscapes ...".format(split))
 
     # OUTPUT FOLDER
@@ -34,18 +34,18 @@ for split in ['train', 'test']:
     print("LUFS average = {}".format(average_lufs))
     ref_db = average_lufs
 
-    n_soundscapes = 20
-    duration = 10.0 
+    n_soundscapes = 50
+    duration = 30.0 
 
-    min_events = 2
+    min_events = 3
     max_events = 3
 
     source_time_dist = 'const'
     source_time = 0.0
 
     event_duration_dist = 'uniform'
-    event_duration_min = 10 #0.1
-    event_duration_max = 10 #0.3
+    event_duration_min = 1 #0.1
+    event_duration_max = 1 #0.3
 
     event_time_dist = 'uniform'
     event_time_min = 0
@@ -74,7 +74,7 @@ for split in ['train', 'test']:
         print('Generating soundscape: {:d}/{:d}'.format(n+1, n_soundscapes))
         
         # create a scaper
-        sc = scaper.Scaper(duration, fg_folder, bg_folder, random_state=42)
+        sc = scaper.Scaper(duration, fg_folder, bg_folder, random_state=n_soundscapes*idx_split + n)
         sc.protected_labels = []
         sc.ref_db = ref_db
         
