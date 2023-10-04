@@ -2,7 +2,7 @@ import numpy as np
 import mir_eval
 import scipy
 
-from metrics_util import match_events
+from metrics_utils import match_events
 
 def test_metrics():
     """
