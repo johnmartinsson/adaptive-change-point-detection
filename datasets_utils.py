@@ -1,12 +1,3 @@
-def load_query_ref(ref_path, soundscape_length):
-    pos_ref = load_pos_ref(ref_path)
-    neg_ref = load_neg_ref(ref_path, soundscape_length)
-
-    # sort by start time
-    query_ref = sorted(pos_ref + neg_ref, key=lambda x: x[0])
-
-    return query_ref
-
 def load_pos_ref(ref_path):
     pos_ref = []
     
