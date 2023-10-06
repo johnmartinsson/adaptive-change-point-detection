@@ -34,7 +34,7 @@ for idx_split, split in enumerate(['train', 'test']):
     print("LUFS average = {}".format(average_lufs))
     ref_db = average_lufs
 
-    n_soundscapes = 50
+    n_soundscapes = 10
     duration = 30.0 
 
     min_events = 3
@@ -48,7 +48,7 @@ for idx_split, split in enumerate(['train', 'test']):
     event_duration_max = 1 #0.3
 
     event_time_dist = 'uniform'
-    event_time_min = 0
+    event_time_min = 4 # TODO: this is here because of a CPD problem where we can not detect events before 3 seconds.. need to solve
     event_time_max = duration-event_duration_max
 
 
