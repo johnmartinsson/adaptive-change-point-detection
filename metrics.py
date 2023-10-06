@@ -55,6 +55,53 @@ def test_metrics():
     print("output   : tp = {}, fp = {}, fn = {}".format(tp, fp, fn))
     print("----------------------------------------")
 
+def intersection(q1, q2):
+    (a, b) = q1
+    (c, d) = q2
+    if b < c or d < a:
+        return 0
+    else:
+        return np.min([b, d]) - np.max([a, c])
+
+def union(q1, q2):
+    (a, b) = q1
+    (c, d) = q2
+
+    s = np.min([a, c])
+    e = np.max([b ,d])
+
+    return e-s
+
+def iou(q1, q2):
+    _intersection = intersection(q1, q2)
+    _union = union(q1, q2)
+    #print(q1, q2)
+    #print("intersection: ", _intersection)
+    #print("union: ", _union)
+    return intersection(q1, q2) / union(q1, q2)
+
+def average_matched_iou(events_ref, events_pred, min_iou=0.3):
+
+    events_ref_ndarray = np.array(events_ref).transpose() # shape (n, 2) -> (2, n)
+    events_pred_ndarray = np.array(events_pred).transpose() # shape (m, 2) -> (2, m)
+
+    matches = match_events(events_ref_ndarray, events_pred_ndarray, min_iou=min_iou)
+
+    ref_match_indices = np.array([idx for (idx, _) in matches])
+    pred_match_indices = np.array([idx for (_, idx) in matches])
+
+    pos_pred_matches = events_pred_ndarray.transpose()[pred_match_indices]
+    pos_ref_matches  = events_ref_ndarray.transpose()[ref_match_indices]
+
+    ious = []
+    for q_ref, q_pred in zip(pos_ref_matches, pos_pred_matches):
+        #print("intervals: ", q_ref, q_pred)
+        #print("iou: ", iou(q_ref, q_pred))
+        ious.append(iou(q_ref, q_pred))
+
+    return np.mean(ious)
+
+
 def compute_tp_fp_fn(events_ref, events_pred, min_iou=0.3):
 
     if len(events_pred) == 0:
