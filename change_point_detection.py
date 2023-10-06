@@ -34,7 +34,7 @@ def distance_past_and_future_averages(embeddings, distance_fn, offset=5, M=5):
 
     return ds
 
-def change_point_detection_from_embeddings(embeddings, timings, M = 3, prominence=0, n_peaks=5):
+def change_point_detection_from_embeddings(embeddings, timings, distance_fn=cosine_distance_score, M = 3, prominence=0, n_peaks=5):
     """
         Detects the timing of the change-points for the waveform given the supplied threshold.
 
@@ -51,7 +51,7 @@ def change_point_detection_from_embeddings(embeddings, timings, M = 3, prominenc
 
     offset = int((emb_win_length-emb_hop_length) / emb_hop_length)
 
-    ds = distance_past_and_future_averages(embeddings, distance_fn=cosine_distance_score, offset=offset, M = M)
+    ds = distance_past_and_future_averages(embeddings, distance_fn=distance_fn, offset=offset, M = M)
 
     peaks = find_peaks(ds, prominence=prominence)
 
