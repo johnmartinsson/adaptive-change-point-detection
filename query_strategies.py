@@ -3,7 +3,6 @@ import os
 import librosa
 
 import datasets
-import datasets_utils
 import change_point_detection as cpd
 
 def get_soundscape_length(base_dir, soundscape_name):
@@ -21,8 +20,8 @@ def fixed_query_strategy(n_queries, base_dir, soundscape_name, soundscape_length
     return fix_queries
 
 def load_query_ref(ref_path, soundscape_length):
-    pos_ref = datasets_utils.load_pos_ref(ref_path)
-    neg_ref = datasets_utils.load_neg_ref(ref_path, soundscape_length)
+    pos_ref = datasets.load_pos_ref(ref_path)
+    neg_ref = datasets.load_neg_ref(ref_path, soundscape_length)
 
     # sort by start time
     query_ref = sorted(pos_ref + neg_ref, key=lambda x: x[0])
@@ -37,16 +36,12 @@ def optimal_query_strategy(base_dir, soundscape_name, soundscape_length):
     return opt_queries
 
 def change_point_query_strategy(n_queries, base_dir, soundscape_name, soundscape_length):
-    embedding_path = os.path.join(base_dir, '{}.birdnet.embeddings.txt'.format(soundscape_name))
-    
-    timings_and_embeddings = datasets.load_timings_and_embeddings(
-        file_path=embedding_path,
+    timings, embeddings = datasets.load_timings_and_embeddings(
+        base_dir = base_dir,
+        soundscape_basename = soundscape_name,
         embedding_dim=1024
     )
     
-    timings    = np.array([[s, e] for (s, e, _) in timings_and_embeddings])
-    embeddings = np.array([r for (_, _, r) in timings_and_embeddings])
-	
     # extract change-points
     peak_timings, ds = cpd.change_point_detection_from_embeddings(
         embeddings,

@@ -2,6 +2,9 @@ import models
 import oracles
 import datasets
 
+def print_queries(queries, name):
+    print("{} : ".format(name), ['({:.2f}, {:.2f})'.format(c[0], c[1]) for c in queries])
+
 def shift_bit_length(x):
     x = int(x)
     return 1<<(x-1).bit_length()
