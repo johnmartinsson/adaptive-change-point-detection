@@ -33,7 +33,16 @@ class WeakLabelOracle:
         for annotation_file_path in annotation_file_paths:
             key = os.path.basename(annotation_file_path).split('.')[0]
             self.annotations[key] = load_annotations(annotation_file_path)
-            
+
+    def pos_events_from_queries(self, queries, soundscape_basename):
+        # TODO: does this introduce label noise? I think not.
+        pos_events = []
+        for (q_st, q_et) in queries:
+            c = self.query(q_st, q_et, soundscape_basename)
+            if c == 1:
+                pos_events.append((q_st, q_et))
+        return pos_events
+
     def query(self, start_time, end_time, soundscape_basename):
         ann = self.annotations[soundscape_basename]
         for (a_start_time, a_end_time, c) in ann:
