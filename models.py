@@ -2,6 +2,8 @@ import numpy as np
 
 import datasets
 import query_strategies as qs
+import utils
+import oracles
 
 import change_point_detection as cpd
 
@@ -14,7 +16,16 @@ def euclidean_distance(x1, x2):
 def weighted_average(xn_mean, n, xm_mean, m):
     return xn_mean * (n / (n + m)) + xm_mean * (m / (n + m))
 
-def queries_from_probas_2(probas, timings, n_queries):
+def binary_entropy(p):
+    return -p*np.log2(p) - (1-p)*np.log2(1-p)
+
+def queries_from_probas(probas, timings, n_queries):
+    # TODO: this is hacky, depends on the embeddings,
+    #       average time of last embedding is 30.5
+    #       instead of 30.0, we just discard it for now
+    probas = probas[:-1]
+    timings = timings[:-1]
+
     probas = probas.reshape((len(probas), 1))
     ds = cpd.distance_past_and_future_averages(
         probas,
@@ -37,8 +48,6 @@ def queries_from_probas_2(probas, timings, n_queries):
     # return most prominent peaks
     peak_timings = list(np.mean(timings[peak_indices_sorted], axis=1))
 
-    #print(peak_timings)
-
     # create AL queries
     query_starts  = [0] + peak_timings
     query_ends = peak_timings + [np.mean(timings[-1])]
@@ -46,42 +55,7 @@ def queries_from_probas_2(probas, timings, n_queries):
 
     return AL_queries
 
-
-def queries_from_probas(probas, ts, n_queries, rel_height):
-    # TODO: the relative height may be important
-    peaks, info = find_peaks(probas, prominence=0)
-    (widths, width_heights, left_ips, right_ips) = peak_widths(probas, peaks, rel_height=rel_height)
-
-    # remap
-    # TODO: it is a problem that ts[0] is 1.5
-    m = interp1d([0, len(probas)-1], [ts[0], ts[-1]])
-    starts = m(left_ips)
-    ends   = m(right_ips)
-
-    queries = list(zip(starts, ends))
-
-    peak_prominences = info['prominences']
-
-    # rank by prominence
-    _, ranked_queries = list(zip(*sorted(list(zip(peak_prominences, queries)), key=lambda x: x[0], reverse=True)))
-
-    n_pos_queries = int(np.floor((n_queries - 1) / 2))
-    pos_queries   = list(ranked_queries[:n_pos_queries])
-    pos_queries   = sorted(pos_queries, key=lambda x: x[0])
-    neg_queries   = datasets.compute_neg_from_pos(pos_queries, ts[-1])
-
-    #print("pos: ", pos_queries)
-    #print("neg: ", neg_queries)
-
-    queries = pos_queries + neg_queries
-
-    assert(len(queries) <= n_queries)
-
-    queries = sorted(queries, key=lambda x: x[0])
-
-    return queries
-
-class ProtoActiveLearner():
+class AdaptiveQueryStrategy():
     """
     The base class for an active learning model.
     """
@@ -93,6 +67,27 @@ class ProtoActiveLearner():
         self.n_count     = 0
         self.p_prototype = np.zeros(1024)
         self.p_count     = 0
+
+    def initialize_with_ground_truth_labels(self, soundscape_basename):
+        oracle = oracles.WeakLabelOracle(self.base_dir)
+        
+        # load initial queries and embeddings
+        queries, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename)
+        
+        # label the embeddings
+        labels = []
+        for (s, e) in queries:
+            c = oracle.query(s, e, soundscape_basename)
+            labels.append(c)
+        labels = np.array(labels)
+        
+        n_embeddings = embeddings[labels == 0]
+        p_embeddings = embeddings[labels == 1]
+        
+        # initialize the active learner
+        self.update(p_embeddings=p_embeddings, n_embeddings=n_embeddings)
+        #proto_active_learner = models.ProtoActiveLearner(base_dir)
+        #proto_active_learner.update(p_embeddings=p_embeddings, n_embeddings=n_embeddings)
 
     def predict(self, query_embeddings, threshold, temp=1):
         """
@@ -116,37 +111,16 @@ class ProtoActiveLearner():
 
         return probas
 
-    def predict_queries(self, soundscape_basename, n_queries, rel_height=0.5):
+    def predict_queries(self, soundscape_basename, n_queries):
         """
         Return the query timings.
         """
 
         timings, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename, embedding_dim=1024)
         probas = self.predict_probas(embeddings)
-        mean_timings = np.mean(timings, axis=1)
+        #mean_timings = np.mean(timings, axis=1)
 
-
-
-        # TODO: I need a more reliable method to detect the start of a peak...
-
-        #diffs = np.abs(probas[1:] - probas[:-1])[:-1]
-        #mean_timings = mean_timings[1:-1]
-
-        # sort by differences
-        #sorted_diffs, ranked_mean_timings = list(zip(*(sorted(list(zip(diffs, mean_timings)), key=lambda x: x[0], reverse=True))))
-
-        #n_mean_timings = ranked_mean_timings[:n_queries-1]
-
-        #mean_timings = sorted(n_mean_timings)
-        
-        # construct queries
-        #soundscape_length = qs.get_soundscape_length(self.base_dir, soundscape_basename)
-        #query_starts  = [0] + mean_timings
-        #query_ends = mean_timings + [soundscape_length]
-        #al_queries = list(zip(query_starts, query_ends))
-
-        al_queries = queries_from_probas_2(probas, timings, n_queries)
-        #al_queries = queries_from_probas(probas, mean_timings, n_queries, rel_height)
+        al_queries = queries_from_probas(probas, timings, n_queries)
         al_queries = sorted(al_queries, key=lambda x: x[0])
 
         return al_queries
@@ -178,6 +152,26 @@ class ProtoActiveLearner():
         self.update_positive_prototype(p_embeddings)
         self.update_negative_prototype(n_embeddings)
 
+    def rank_soundscapes(self, soundscape_basenames):
+        ranks = []
+        for soundscape_basename in soundscape_basenames:
+            rank = self.entropy_score(soundscape_basename)
+            ranks.append(rank)
+
+        return utils.sort_by_rank(ranks=ranks, values=soundscape_basenames)
+
+    def entropy_score(self, soundscape_basename):
+        # load the embeddings for the soundscape
+        _, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename, embedding_dim=1024)
+
+        probas = self.predict_probas(embeddings)
+        entropies = [binary_entropy(p) for p in probas]
+        return np.mean(entropies)
+
+    def next_soundscape_basename(self, remaining_soundscape_basenames):
+        ranked_soundscapes = self.rank_soundscapes(remaining_soundscape_basenames)
+        return ranked_soundscapes[0]
+
     #def evaluate(self, dataset):
     #    """
     #    Evaluate the model on the dataset.
@@ -185,7 +179,28 @@ class ProtoActiveLearner():
     #    print("Evaluate active learner ...")
     #    pass
 
+class FixQueryStrategy():
+    """
+    The base class for an active learning model.
+    """
+    def __init__(self, base_dir):
+        self.base_dir = base_dir
+
+    def predict_queries(self, soundscape_basename, n_queries):
+        soundscape_length = qs.get_soundscape_length(self.base_dir, soundscape_basename)
+
+        fix_queries = np.linspace(0, soundscape_length, n_queries+1)
+        fix_queries = list(zip(fix_queries[:-1], fix_queries[1:]))
+        
+        return fix_queries
+
+    def next_soundscape_basename(self, remaining_soundscape_basenames):
+        return np.random.chocie(remaining_soundscape_basenames)
+
+
+
 class BaseActiveLearner():
+
     """
     The base class for an active learning model.
     """
