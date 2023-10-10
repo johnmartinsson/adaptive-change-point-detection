@@ -27,7 +27,7 @@ def valid_queries(queries, base_dir, soundscape_basename):
 
     assert tot == soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
 
-def evaluate_all(base_dir, soundscape_basename, proto_active_learner, min_iou=0.001, n_queries=0, rel_height=0.5):
+def evaluate_all(base_dir, soundscape_basename, proto_active_learner, min_iou=0.001, n_queries=0):
 
     # create oracle
     oracle = oracles.WeakLabelOracle(base_dir)
@@ -40,9 +40,11 @@ def evaluate_all(base_dir, soundscape_basename, proto_active_learner, min_iou=0.
         n_queries   = len(opt_queries) # this is the annotation budget
     cp_queries  = qs.change_point_query_strategy(n_queries, base_dir, soundscape_basename, soundscape_length)
     fix_queries = qs.fixed_query_strategy(n_queries, base_dir, soundscape_basename, soundscape_length)
-    al_queries = proto_active_learner.predict_queries(soundscape_basename, n_queries, rel_height)
+    al_queries = proto_active_learner.predict_queries(soundscape_basename, n_queries)
 
     assert(len(cp_queries) == len(fix_queries) == len(al_queries))
+    #print("fix queries: ", len(fix_queries))
+    #print("AL queries: ", len(al_queries))
 
     # assert valied queries
     # TODO: some files have overlapping positive events, not as expected
@@ -54,8 +56,8 @@ def evaluate_all(base_dir, soundscape_basename, proto_active_learner, min_iou=0.
     #valid_queries(al_queries, base_dir, soundscape_basename)
 
     queries_and_names = [
-        (opt_queries, 'opt'),
-        (cp_queries,  'cp'),
+        #(opt_queries, 'opt'),
+        #(cp_queries,  'cp'),
         (fix_queries, 'fix'),
         (al_queries, 'al'),
     ]
@@ -97,6 +99,28 @@ def evaluate_all(base_dir, soundscape_basename, proto_active_learner, min_iou=0.
             #print("negative: ", n_embeddings.shape)
 
     return name_to_label_quality, len(opt_queries), p_embeddings, n_embeddings
+
+def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0):
+    # create oracle
+    oracle = oracles.WeakLabelOracle(base_dir)
+
+    soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
+
+    # create queries
+    queries = query_strategy.predict_queries(soundscape_basename, n_queries)
+
+    valid_queries(queries, base_dir, soundscape_basename)
+
+    ref_path = os.path.join(base_dir, '{}.txt'.format(soundscape_basename))
+    pos_ref  = datasets.load_pos_ref(ref_path)
+    pos_pred = oracle.pos_events_from_queries(queries, soundscape_basename)
+        
+    f1_score = metrics.f1_score_from_events(pos_ref, pos_pred, min_iou=min_iou)
+    mean_iou_score = metrics.average_matched_iou(pos_ref, pos_pred, min_iou=min_iou)
+
+    p_embeddings, n_embeddings = get_embeddings(pos_pred, base_dir, soundscape_basename)
+
+    return f1_score, mean_iou_score, p_embeddings, n_embeddings
 
 def get_embeddings(pos_pred, base_dir, soundscape_basename):
     # TODO: this may actually introduce a lot of label-noise

@@ -2,6 +2,9 @@ import models
 import oracles
 import datasets
 
+def sort_by_rank(ranks, values, reverse=True):
+    return [x[1] for x in sorted(list(zip(ranks, values)), key=lambda x: x[0], reverse=reverse)]
+
 def print_queries(queries, name):
     print("{} : ".format(name), ['({:.2f}, {:.2f})'.format(c[0], c[1]) for c in queries])
 
