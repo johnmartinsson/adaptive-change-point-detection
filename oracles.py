@@ -2,10 +2,14 @@ import os
 import glob
 
 def class_name2class_id(class_name):
-    if 'bg' in class_name:
-        return 0
-    elif 'fg' in class_name:
+    if 'me' in class_name:
         return 1
+    else:
+        return 0
+    #if 'bg' in class_name:
+    #    return 0
+    #elif 'fg' in class_name:
+    #    return 1
 
 def load_annotations(file_path):
     annotations = []
