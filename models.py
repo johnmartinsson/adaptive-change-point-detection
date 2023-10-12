@@ -25,6 +25,7 @@ def queries_from_probas(probas, timings, n_queries):
     #       instead of 30.0, we just discard it for now
     probas = probas[:-1]
     timings = timings[:-1]
+    #print(np.mean(timings, axis=1))
 
     probas = probas.reshape((len(probas), 1))
     ds = cpd.distance_past_and_future_averages(
@@ -41,6 +42,12 @@ def queries_from_probas(probas, timings, n_queries):
     peak_indices = peaks[0]
     peak_prominences = peaks[1]['prominences']
     xs = sorted(list(zip(peak_indices, peak_prominences)), key=lambda x: x[1], reverse=True)
+
+    #_n_peaks = xs[:n_peaks]
+    #_indices = [x[0] for x in _n_peaks]
+    #_timings = np.mean(timings[_indices], axis=1)
+    #print("timings: ", _timings)
+    #print("peaks: ", _n_peaks)
 
     # sort by indice
     peak_indices_sorted = sorted([x[0] for x in xs[:n_peaks]])
@@ -59,8 +66,10 @@ class AdaptiveQueryStrategy():
     """
     The base class for an active learning model.
     """
-    def __init__(self, base_dir):
-        self.base_dir    = base_dir
+    def __init__(self, base_dir, random_soundscape, fixed_queries):
+        self.base_dir          = base_dir
+        self.random_soundscape = random_soundscape
+        self.fixed_queries     = fixed_queries
 
         # initial state of prototypes
         self.n_prototype = np.zeros(1024)
@@ -86,8 +95,6 @@ class AdaptiveQueryStrategy():
         
         # initialize the active learner
         self.update(p_embeddings=p_embeddings, n_embeddings=n_embeddings)
-        #proto_active_learner = models.ProtoActiveLearner(base_dir)
-        #proto_active_learner.update(p_embeddings=p_embeddings, n_embeddings=n_embeddings)
 
     def predict(self, query_embeddings, threshold, temp=1):
         """
@@ -115,15 +122,21 @@ class AdaptiveQueryStrategy():
         """
         Return the query timings.
         """
+        if self.fixed_queries:
+            soundscape_length = qs.get_soundscape_length(self.base_dir, soundscape_basename)
 
-        timings, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename, embedding_dim=1024)
-        probas = self.predict_probas(embeddings)
-        #mean_timings = np.mean(timings, axis=1)
+            fix_queries = np.linspace(0, soundscape_length, n_queries+1)
+            fix_queries = list(zip(fix_queries[:-1], fix_queries[1:]))
+            
+            return fix_queries
+        else:
+            timings, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename, embedding_dim=1024)
+            probas = self.predict_probas(embeddings)
 
-        al_queries = queries_from_probas(probas, timings, n_queries)
-        al_queries = sorted(al_queries, key=lambda x: x[0])
+            al_queries = queries_from_probas(probas, timings, n_queries)
+            al_queries = sorted(al_queries, key=lambda x: x[0])
 
-        return al_queries
+            return al_queries
 
     def update_positive_prototype(self, p_embeddings):
         xm_mean = np.mean(p_embeddings, axis=0)
@@ -169,34 +182,11 @@ class AdaptiveQueryStrategy():
         return np.mean(entropies)
 
     def next_soundscape_basename(self, remaining_soundscape_basenames):
-        ranked_soundscapes = self.rank_soundscapes(remaining_soundscape_basenames)
-        return ranked_soundscapes[0]
-
-    #def evaluate(self, dataset):
-    #    """
-    #    Evaluate the model on the dataset.
-    #    """
-    #    print("Evaluate active learner ...")
-    #    pass
-
-class FixQueryStrategy():
-    """
-    The base class for an active learning model.
-    """
-    def __init__(self, base_dir):
-        self.base_dir = base_dir
-
-    def predict_queries(self, soundscape_basename, n_queries):
-        soundscape_length = qs.get_soundscape_length(self.base_dir, soundscape_basename)
-
-        fix_queries = np.linspace(0, soundscape_length, n_queries+1)
-        fix_queries = list(zip(fix_queries[:-1], fix_queries[1:]))
-        
-        return fix_queries
-
-    def next_soundscape_basename(self, remaining_soundscape_basenames):
-        return np.random.chocie(remaining_soundscape_basenames)
-
+        if self.random_soundscape:
+            return np.random.choice(remaining_soundscape_basenames)
+        else:
+            ranked_soundscapes = self.rank_soundscapes(remaining_soundscape_basenames)
+            return ranked_soundscapes[0]
 
 
 class BaseActiveLearner():
