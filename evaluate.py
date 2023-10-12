@@ -104,7 +104,7 @@ def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_i
     # create oracle
     oracle = oracles.WeakLabelOracle(base_dir)
 
-    soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
+    #soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
 
     # create queries
     queries = query_strategy.predict_queries(soundscape_basename, n_queries)
@@ -121,6 +121,34 @@ def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_i
     p_embeddings, n_embeddings = get_embeddings(pos_pred, base_dir, soundscape_basename)
 
     return f1_score, mean_iou_score, p_embeddings, n_embeddings
+
+def get_embeddings_2(pos_pred, base_dir, soundscape_basename):
+    soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
+    neg_pred = datasets.compute_neg_from_pos(pos_pred, soundscape_length)
+
+    timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
+
+    n_embeddings = []
+    p_embeddings = []
+
+    for idx in range(len(timings)):
+        (s_emb, e_emb) = timings[idx]
+        emb = embeddings[idx]
+
+        for (s_pos, e_pos) in pos_pred:
+            if s_pos >= s_emb and e_pos <= e_emb:
+                p_embeddings.append(emb)
+                continue
+
+        for (s_neg, e_neg) in neg_pred:
+            if s_neg <= s_emb and e_neg >= e_emb:
+                n_embeddings.append(emb)
+                continue
+
+    n_embeddings = np.array(n_embeddings)
+    p_embeddings = np.array(p_embeddings)
+
+    return p_embeddings, n_embeddings
 
 def get_embeddings(pos_pred, base_dir, soundscape_basename):
     # TODO: this may actually introduce a lot of label-noise

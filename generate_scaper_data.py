@@ -103,7 +103,7 @@ for idx_split, split in enumerate(['train', 'test']):
         sc.generate(audiofile, jamsfile,
                     allow_repeated_label=True,
                     allow_repeated_source=False,
-                    reverb=0.1, # TODO: what does this do?
+                    reverb=0.0, # TODO: what does this do?
                     disable_sox_warnings=True,
                     no_audio=False,
                     txt_path=txtfile)
