@@ -11,7 +11,7 @@ import oracles
 import query_strategies as qs
 import change_point_detection as cpd
 
-def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True):
+def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, savefile=None):
     oracle = oracles.WeakLabelOracle(base_dir)
     
     timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
@@ -75,3 +75,11 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
         plot_queries(ax[1], pred_queries, color='magenta', label='predicted queries')
     
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+    plt.tight_layout()
+
+    if savefile is not None:
+        plt.savefig(savefile, bbox_inches='tight')
+        plt.cla()
+        plt.clf()
+        plt.close()

@@ -87,16 +87,18 @@ def average_matched_iou(events_ref, events_pred, min_iou=0.3):
 
     matches = match_events(events_ref_ndarray, events_pred_ndarray, min_iou=min_iou)
 
+    if len(matches) == 0:
+        # TODO: how should this be handled?
+        return 0
+
     ref_match_indices = np.array([idx for (idx, _) in matches])
     pred_match_indices = np.array([idx for (_, idx) in matches])
-
+    
     pos_pred_matches = events_pred_ndarray.transpose()[pred_match_indices]
     pos_ref_matches  = events_ref_ndarray.transpose()[ref_match_indices]
 
     ious = []
     for q_ref, q_pred in zip(pos_ref_matches, pos_pred_matches):
-        #print("intervals: ", q_ref, q_pred)
-        #print("iou: ", iou(q_ref, q_pred))
         ious.append(iou(q_ref, q_pred))
 
     return np.mean(ious)
