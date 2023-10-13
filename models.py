@@ -65,7 +65,7 @@ class AdaptiveQueryStrategy():
         self.p_count     = 0
 
     def initialize_with_ground_truth_labels(self, soundscape_basename):
-        print("initialize: ", soundscape_basename)
+        #print("initialize: ", soundscape_basename)
         oracle = oracles.WeakLabelOracle(self.base_dir)
         
         # load initial queries and embeddings
@@ -196,7 +196,7 @@ class AdaptiveQueryStrategy():
     def next_soundscape_basename(self, remaining_soundscape_basenames):
         if self.random_soundscape:
             # TODO: maybe remove this seed again?
-            np.random.seed(56)
+            #np.random.seed(56)
             return np.random.choice(remaining_soundscape_basenames)
         else:
             ranked_soundscapes = self.rank_soundscapes(remaining_soundscape_basenames)
