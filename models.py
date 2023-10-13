@@ -20,13 +20,6 @@ def binary_entropy(p):
     return -p*np.log2(p) - (1-p)*np.log2(1-p)
 
 def queries_from_probas(probas, timings, n_queries):
-    # TODO: this is hacky, depends on the embeddings,
-    #       average time of last embedding is 30.5
-    #       instead of 30.0, we just discard it for now
-    probas = probas[:-1]
-    timings = timings[:-1]
-    #print(np.mean(timings, axis=1))
-
     probas = probas.reshape((len(probas), 1))
     ds = cpd.distance_past_and_future_averages(
         probas,
@@ -42,12 +35,6 @@ def queries_from_probas(probas, timings, n_queries):
     peak_indices = peaks[0]
     peak_prominences = peaks[1]['prominences']
     xs = sorted(list(zip(peak_indices, peak_prominences)), key=lambda x: x[1], reverse=True)
-
-    #_n_peaks = xs[:n_peaks]
-    #_indices = [x[0] for x in _n_peaks]
-    #_timings = np.mean(timings[_indices], axis=1)
-    #print("timings: ", _timings)
-    #print("peaks: ", _n_peaks)
 
     # sort by indice
     peak_indices_sorted = sorted([x[0] for x in xs[:n_peaks]])
@@ -78,6 +65,7 @@ class AdaptiveQueryStrategy():
         self.p_count     = 0
 
     def initialize_with_ground_truth_labels(self, soundscape_basename):
+        print("initialize: ", soundscape_basename)
         oracle = oracles.WeakLabelOracle(self.base_dir)
         
         # load initial queries and embeddings
@@ -117,6 +105,30 @@ class AdaptiveQueryStrategy():
             probas[idx_query] = proba
 
         return probas
+
+    def predict_pos_events(self, base_dir, soundscape_basename, threshold=0.5):
+        query_timings, query_embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
+
+        probas      = self.predict_probas(query_embeddings)
+        pos_indices = (probas >= threshold)
+
+        avg_timings = query_timings.mean(axis=1)
+        pos_avg_timings = avg_timings[pos_indices]
+        hop_length  = avg_timings[1]-avg_timings[0]
+
+        pos_events = []
+
+        idx_timing = 0
+        # TODO: maybe improve this a bit? fairly naive as it is
+        while idx_timing < len(pos_avg_timings):
+            s = pos_avg_timings[idx_timing]
+            while idx_timing < len(pos_avg_timings)-1 and (pos_avg_timings[idx_timing+1] - pos_avg_timings[idx_timing]) <= hop_length:
+                idx_timing += 1
+            e = pos_avg_timings[idx_timing]
+            pos_events.append((s, e))
+            idx_timing += 1
+        return pos_events
+
 
     def predict_queries(self, soundscape_basename, n_queries):
         """
@@ -183,6 +195,8 @@ class AdaptiveQueryStrategy():
 
     def next_soundscape_basename(self, remaining_soundscape_basenames):
         if self.random_soundscape:
+            # TODO: maybe remove this seed again?
+            np.random.seed(56)
             return np.random.choice(remaining_soundscape_basenames)
         else:
             ranked_soundscapes = self.rank_soundscapes(remaining_soundscape_basenames)

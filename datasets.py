@@ -2,6 +2,9 @@ import os
 import glob
 import numpy as np
 
+def load_pos_ref_aux(base_dir, soundscape_basename):
+    ref_path = os.path.join(base_dir, "{}.txt".format(soundscape_basename))
+    return load_pos_ref(ref_path)
 
 def load_pos_ref(ref_path):
     pos_ref = []
