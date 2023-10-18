@@ -1,3 +1,4 @@
+import sys
 import os
 import sys
 import numpy as np
@@ -22,6 +23,7 @@ def list_difference(l1, l2):
 
 def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir, min_iou):
     next_soundscape_basename = query_strategy.next_soundscape_basename(soundscape_basenames)
+
     
     # evaluate label-quality and get embeddings
     f1_score, mean_iou_score, p_embeddings, n_embeddings = evaluate.evaluate_query_strategy(
@@ -59,10 +61,15 @@ def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
     return np.mean(f1s), np.mean(mious)
 
 def main():
+    sim_dir = sys.argv[1]
+
+    if not os.path.exists(sim_dir):
+        os.makedirs(sim_dir)
+
     snr = '0.0'
     n_soundscapes = 100
     
-    n_queriess = [7]
+    n_queriess = [5, 7, 10, 20, 30]
     print("n_queriess: ", n_queriess)
     
     base_dir      = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.8s_0.25s_large/train_soundscapes_snr_{}/'.format(snr)
@@ -75,15 +82,18 @@ def main():
     n_soundscapes_budget = 80
     min_iou = 0.00001
     
-    n_init_soundscapes = 20
+    n_init_soundscapes = 30
+
+    assert(n_soundscapes_budget < n_soundscapes)
+    assert(n_init_soundscapes <= n_soundscapes)
     
-    f1_scores_test     = np.zeros((4, n_init_soundscapes, n_soundscapes_budget))
-    miou_scores_test   = np.zeros((4, n_init_soundscapes, n_soundscapes_budget))
-    f1_scores_train    = np.zeros((4, n_init_soundscapes, n_soundscapes_budget))
-    miou_scores_train  = np.zeros((4, n_init_soundscapes, n_soundscapes_budget))
+    f1_scores_test     = np.zeros((4, len(n_queriess), n_init_soundscapes, n_soundscapes_budget))
+    miou_scores_test   = np.zeros((4, len(n_queriess), n_init_soundscapes, n_soundscapes_budget))
+    f1_scores_train    = np.zeros((4, len(n_queriess), n_init_soundscapes, n_soundscapes_budget))
+    miou_scores_train  = np.zeros((4, len(n_queriess), n_init_soundscapes, n_soundscapes_budget))
     
     total_time = time.time()
-    for n_queries in n_queriess:
+    for idx_n_queries, n_queries in enumerate(n_queriess):
         init_soundscape_basenames = np.random.choice(['soundscape_{}'.format(idx) for idx in range(n_soundscapes)], n_init_soundscapes)
         
         for idx_init, init_soundscape_basename in enumerate(tqdm.tqdm((init_soundscape_basenames))):
@@ -122,8 +132,8 @@ def main():
                     f1_test_score, miou_test_score = evaluate_model_on_test_data(query_strategy, test_base_dir)
                     #print("evaluation time: ", time.time() - t1)
                     
-                    f1_scores_test[idx_query_strategy, idx_init, budget_count] = f1_test_score
-                    miou_scores_test[idx_query_strategy, idx_init, budget_count] = miou_test_score
+                    f1_scores_test[idx_query_strategy, idx_n_queries, idx_init, budget_count] = f1_test_score
+                    miou_scores_test[idx_query_strategy, idx_n_queries, idx_init, budget_count] = miou_test_score
         
                     # save prediction probas on test file to disk
                     figure_dir_path = os.path.join('figures/strategy_{}/{}'.format(idx_query_strategy, init_soundscape_basename))
@@ -157,8 +167,8 @@ def main():
                     #print("strategy {}: ".format(idx_query_strategy), bns)
     
     
-                    f1_scores_train[idx_query_strategy, idx_init, budget_count] = f1_train_score
-                    miou_scores_train[idx_query_strategy, idx_init, budget_count] = miou_train_score
+                    f1_scores_train[idx_query_strategy, idx_n_queries, idx_init, budget_count] = f1_train_score
+                    miou_scores_train[idx_query_strategy, idx_n_queries, idx_init, budget_count] = miou_train_score
     
     
                 # increase budget count
@@ -168,17 +178,18 @@ def main():
         print("- Number of queries: {}".format(n_queries))
         print("------------------------------------------------")
         for idx_query_strategy in range(len(query_strategies)):
-            f1_mean_train = f1_scores_train[idx_query_strategy].flatten().mean()
-            f1_std_train  = f1_scores_train[idx_query_strategy].flatten().std()
+            f1_mean_train = f1_scores_train[idx_query_strategy, idx_n_queries].flatten().mean()
+            f1_std_train  = f1_scores_train[idx_query_strategy, idx_n_queries].flatten().std()
     
-            miou_mean_train = miou_scores_train[idx_query_strategy].flatten().mean()
-            miou_std_train  = miou_scores_train[idx_query_strategy].flatten().std()
+            miou_mean_train = miou_scores_train[idx_query_strategy, idx_n_queries].flatten().mean()
+            miou_std_train  = miou_scores_train[idx_query_strategy, idx_n_queries].flatten().std()
             print("Strategy {}, f1 = {:.3f} +- {:.3f}, miou = {:.3f} +- {:.3f}".format(idx_query_strategy, f1_mean_train, f1_std_train, miou_mean_train, miou_std_train))
+
     
-    np.save("f1_scores_train.npy", f1_scores_train)
-    np.save("miou_scores_train.npy", miou_scores_train)
-    np.save("f1_scores_test.npy", f1_scores_test)
-    np.save("miou_scores_test.npy", miou_scores_test)
+    np.save(os.path.join(sim_dir, "f1_scores_train.npy"), f1_scores_train)
+    np.save(os.path.join(sim_dir, "miou_scores_train.npy"), miou_scores_train)
+    np.save(os.path.join(sim_dir, "f1_scores_test.npy"), f1_scores_test)
+    np.save(os.path.join(sim_dir, "miou_scores_test.npy"), miou_scores_test)
 
     print("total time: ", time.time()-total_time)
 
