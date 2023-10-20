@@ -92,7 +92,7 @@ class AdaptiveQueryStrategy():
         pred = probas >= threshold
         return pred.astype(np.int32)
 
-    def predict_probas(self, query_embeddings, temp=1):
+    def predict_probas(self, query_embeddings, temp=1, noise_factor=0):
         """
         Predict pseudo-probabilities of the input belonging to each class.
         """
@@ -103,6 +103,11 @@ class AdaptiveQueryStrategy():
 
             proba = np.exp(-d_p / temp) / (np.exp(-d_p/temp) + np.exp(-d_n/temp))
             probas[idx_query] = proba
+
+        # TODO: this noise factor should probably be removed again. Only here
+        # to study how the method fails.
+        probas = probas + np.random.rand(len(probas)) * noise_factor
+        probas = probas / np.max(probas)
 
         return probas
 
@@ -130,7 +135,7 @@ class AdaptiveQueryStrategy():
         return pos_events
 
 
-    def predict_queries(self, soundscape_basename, n_queries):
+    def predict_queries(self, soundscape_basename, n_queries, noise_factor=0):
         """
         Return the query timings.
         """
@@ -143,7 +148,7 @@ class AdaptiveQueryStrategy():
             return fix_queries
         else:
             timings, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename, embedding_dim=1024)
-            probas = self.predict_probas(embeddings)
+            probas = self.predict_probas(embeddings, noise_factor=noise_factor)
 
             al_queries = queries_from_probas(probas, timings, n_queries)
             al_queries = sorted(al_queries, key=lambda x: x[0])
