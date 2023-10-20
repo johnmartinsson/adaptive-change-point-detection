@@ -67,9 +67,9 @@ def main():
         os.makedirs(sim_dir)
 
     snr = '0.0'
-    n_soundscapes = 100
+    n_soundscapes = 50
     
-    n_queriess = [5, 7, 10, 20, 30]
+    n_queriess = [10, 30]
     print("n_queriess: ", n_queriess)
     
     base_dir      = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.8s_0.25s_large/train_soundscapes_snr_{}/'.format(snr)
@@ -79,10 +79,13 @@ def main():
     all_soundscape_basenames = ['soundscape_{}'.format(idx) for idx in range(n_soundscapes)]
     
     
-    n_soundscapes_budget = 80
+    n_soundscapes_budget = 20
     min_iou = 0.00001
     
-    n_init_soundscapes = 30
+    n_init_soundscapes = 5
+
+    # only use these strategies
+    query_strategy_indices = [1, 3]
 
     assert(n_soundscapes_budget < n_soundscapes)
     assert(n_init_soundscapes <= n_soundscapes)
@@ -125,10 +128,10 @@ def main():
     
                 #print("-------------------------------------------------------------------------")
                 # simulate annotation of one soundscape for each query strategy
-                for idx_query_strategy in range(len(query_strategies)):
+                for idx_query_strategy in query_strategy_indices:
                     query_strategy = query_strategies[idx_query_strategy]
     
-                    t1 = time.time()
+                    #t1 = time.time()
                     f1_test_score, miou_test_score = evaluate_model_on_test_data(query_strategy, test_base_dir)
                     #print("evaluation time: ", time.time() - t1)
                     
@@ -136,25 +139,25 @@ def main():
                     miou_scores_test[idx_query_strategy, idx_n_queries, idx_init, budget_count] = miou_test_score
         
                     # save prediction probas on test file to disk
-                    figure_dir_path = os.path.join('figures/strategy_{}/{}'.format(idx_query_strategy, init_soundscape_basename))
-                    if not os.path.exists(figure_dir_path):
-                        os.makedirs(figure_dir_path)
+                    #figure_dir_path = os.path.join('figures/strategy_{}/{}'.format(idx_query_strategy, init_soundscape_basename))
+                    #if not os.path.exists(figure_dir_path):
+                    #    os.makedirs(figure_dir_path)
     
                     # t1 = time.time()
-                    # visualize.visualize_query_strategy(
-                    #     query_strategy,
-                    #     "strategy {}".format(idx_query_strategy),
-                    #     test_soundscape_basename,
-                    #     test_base_dir,
-                    #     n_queries,
-                    #     vis_queries=False,
-                    #     vis_probs=True,
-                    #     savefile=os.path.join(figure_dir_path, "iteration_{}.png".format(budget_count)),
-                    # )
+                    #visualize.visualize_query_strategy(
+                    #    query_strategy,
+                    #    "strategy {}".format(idx_query_strategy),
+                    #    test_soundscape_basename,
+                    #    test_base_dir,
+                    #    n_queries,
+                    #    vis_queries=False,
+                    #    vis_probs=True,
+                    #    savefile=os.path.join(figure_dir_path, "iteration_{}.png".format(budget_count)),
+                    #)
                     # print("visualization time: ", time.time() - t1)
     
                     bns = bnss[idx_query_strategy]
-                    t1 = time.time()
+                    #t1 = time.time()
                     f1_train_score, miou_train_score, _, _, bns = simulate_strategy(
                         query_strategy       = query_strategy,
                         soundscape_basenames = bns,
