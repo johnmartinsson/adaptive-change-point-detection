@@ -5,6 +5,7 @@ from scipy.signal import find_peaks, peak_widths
 
 import matplotlib.pyplot as plt
 
+import models
 import utils
 import datasets
 import oracles
@@ -13,12 +14,16 @@ import change_point_detection as cpd
 
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
-def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, savefile=None):
+def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, savefile=None, noise_factor=0):
     oracle = oracles.WeakLabelOracle(base_dir)
     
     timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
-    pred_probas = query_strategy.predict_probas(embeddings)
-    pred_queries = query_strategy.predict_queries(soundscape_basename, n_queries=n_queries)
+    pred_probas = query_strategy.predict_probas(embeddings, noise_factor=noise_factor)
+    if query_strategy.fixed_queries:
+        pred_queries = query_strategy.predict_queries(soundscape_basename, n_queries)
+    else:
+        pred_queries = models.queries_from_probas(pred_probas, timings, n_queries)
+        pred_queries = sorted(pred_queries, key=lambda x: x[0])
     pred_pos_events = oracle.pos_events_from_queries(pred_queries, soundscape_basename)
     ts_probas = np.mean(timings, axis=1)
 
@@ -55,7 +60,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
     peak_indices = sorted(utils.sort_by_rank(peak_prominences, peak_indices)[:n_queries-1])
 
     if vis_peaks:
-        ax[1].plot(ts_probas[peak_indices], ds[peak_indices], "x", color="red")
+        ax[1].plot(ts_probas[peak_indices], ds[peak_indices], "x", color="red", label='peaks')
 
     if vis_cpd:
         ax[1].plot(ts_probas, ds, label='cpd', color=colors[0])
@@ -81,7 +86,8 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
         ax.vlines(points, ymin=-0.2, ymax=1.2, color=color, label=label, linestyle='dashed')
 
     # plot true event onsets and offsets
-    plot_events(ax[1], ref_pos_events, color='green', label='reference labels', ymax=0.9)
+    if vis_true:
+        plot_events(ax[1], ref_pos_events, color='green', label='reference labels', ymax=0.9)
     if vis_label:
         plot_events(ax[1], pred_pos_events, color='magenta', label='annotated labels', ymax=0.95)
 
