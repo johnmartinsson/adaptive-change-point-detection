@@ -44,9 +44,8 @@ def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_i
 
     pos_ref  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
     pos_pred = oracle.pos_events_from_queries(queries, soundscape_basename)
+
     assert len(pos_pred) <= 3, "either oracle is wrong, or there are more than 3 events."
-    #print("pos_pred: ", pos_pred)
-    #print("pos_ref: ", pos_ref)
         
     # TODO: this is unlikely to happen, but can happen if all positive events end up overlapping with two queries by change.
     if len(pos_pred) == 0:
@@ -106,57 +105,4 @@ def get_embeddings_2(pos_pred, base_dir, soundscape_basename):
         n_embeddings.append(embeddings[idx_timing])                                                                                  
         idx_timing += 1                                                                                                              
 
-    # TODO: these if statements are a bit ad hoc                                                                                         
-    #if idx_timing < len(embeddings):
-    #    rest_embeddings = embeddings[idx_timing:]                                                                                        
-    #    if len(n_embeddings) > 0:
-    #        n_embeddings = np.concatenate((np.array(n_embeddings), rest_embeddings)) # Add rest                                          
-    #    else:
-    #        n_embeddings = rest_embeddings                                                                                               
-
-    #p_embeddings = np.array(p_embeddings)
-    #n_embeddings = np.array(n_embeddings)
-    
     return p_embeddings, n_embeddings 
-
-def get_embeddings(pos_pred, base_dir, soundscape_basename):
-    # TODO: this may actually introduce a lot of label-noise
-    # make sure that all embeddings that contain a whole positive
-    # event gets a positive label...
-    timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
-
-    avg_timings = np.mean(timings, axis=1)
-
-    p_embeddings = []
-    n_embeddings = []
-
-    idx_timing = 0
-    idx_pos_pred = 0
-    not_done = True
-    while not_done:
-        s, e = pos_pred[idx_pos_pred]
-        idx_pos_pred += 1
-
-        # add negative embeddings
-        while avg_timings[idx_timing] < s:
-            n_embeddings.append(embeddings[idx_timing])
-            idx_timing += 1
-
-        # add positive embeddings
-        while avg_timings[idx_timing] < e:
-            p_embeddings.append(embeddings[idx_timing])
-            idx_timing += 1
-
-        not_done = idx_pos_pred < len(pos_pred)
-
-    p_embeddings = np.array(p_embeddings)
-    # TODO: these if statements are a bit ad hoc
-    if idx_timing < len(embeddings):
-        rest_embeddings = embeddings[idx_timing:]
-        if len(n_embeddings) > 0:
-            n_embeddings = np.concatenate((np.array(n_embeddings), rest_embeddings)) # Add rest
-        else:
-            n_embeddings = rest_embeddings
-
-
-    return p_embeddings, n_embeddings
