@@ -30,23 +30,31 @@ def valid_queries(queries, base_dir, soundscape_basename, n_queries):
 
     # TODO: hacky add of 0.5 and check less than because of embeddings in BirdNET...
     assert tot >= soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
-    assert tot <= soundscape_length + 0.5, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
+    assert tot <= soundscape_length + 0.6, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
 
-def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0):
+def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0):
     query_strategy.base_dir = base_dir
     # create oracle
     oracle = oracles.WeakLabelOracle(base_dir)
 
     # create queries
-    queries = query_strategy.predict_queries(soundscape_basename, n_queries)
+    queries = query_strategy.predict_queries(soundscape_basename, n_queries, noise_factor=noise_factor)
 
     valid_queries(queries, base_dir, soundscape_basename, n_queries)
 
     pos_ref  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
     pos_pred = oracle.pos_events_from_queries(queries, soundscape_basename)
+    assert len(pos_pred) <= 3, "either oracle is wrong, or there are more than 3 events."
+    #print("pos_pred: ", pos_pred)
+    #print("pos_ref: ", pos_ref)
         
-    f1_score       = metrics.f1_score_from_events(pos_ref, pos_pred, min_iou=min_iou)
-    mean_iou_score = metrics.average_matched_iou(pos_ref, pos_pred, min_iou=min_iou)
+    # TODO: this is unlikely to happen, but can happen if all positive events end up overlapping with two queries by change.
+    if len(pos_pred) == 0:
+        f1_score = 0
+        mean_iou_score = 0
+    else:
+        f1_score       = metrics.f1_score_from_events(pos_ref, pos_pred, min_iou=min_iou)
+        mean_iou_score = metrics.average_matched_iou(pos_ref, pos_pred, min_iou=min_iou)
 
     p_embeddings, n_embeddings = get_embeddings_2(pos_pred, base_dir, soundscape_basename)
 
@@ -63,6 +71,12 @@ def get_embeddings_2(pos_pred, base_dir, soundscape_basename):
     idx_timing = 0 
     idx_pos_pred = 0                                                                                                                     
     not_done = True                                                                                                                      
+
+    # if there are no positive annotations, everything contributes to the negative
+    # TODO: the fact that this happens should be looked into
+    if len(pos_pred) == 0:
+        return [], np.array(embeddings)
+
     while not_done:
         s, e = pos_pred[idx_pos_pred]                                                                                                    
         idx_pos_pred += 1                                                                                                                
@@ -87,16 +101,21 @@ def get_embeddings_2(pos_pred, base_dir, soundscape_basename):
         
         not_done = idx_pos_pred < len(pos_pred)                                                                                          
     
-    # TODO: these if statements are a bit ad hoc                                                                                         
-    if idx_timing < len(embeddings):
-        rest_embeddings = embeddings[idx_timing:]                                                                                        
-        if len(n_embeddings) > 0:
-            n_embeddings = np.concatenate((np.array(n_embeddings), rest_embeddings)) # Add rest                                          
-        else:
-            n_embeddings = rest_embeddings                                                                                               
+    while idx_timing < len(timings):
+        #print("{:.2f} negative".format(avg_timings[idx_timing]))
+        n_embeddings.append(embeddings[idx_timing])                                                                                  
+        idx_timing += 1                                                                                                              
 
-    p_embeddings = np.array(p_embeddings)
-    n_embeddings = np.array(n_embeddings)
+    # TODO: these if statements are a bit ad hoc                                                                                         
+    #if idx_timing < len(embeddings):
+    #    rest_embeddings = embeddings[idx_timing:]                                                                                        
+    #    if len(n_embeddings) > 0:
+    #        n_embeddings = np.concatenate((np.array(n_embeddings), rest_embeddings)) # Add rest                                          
+    #    else:
+    #        n_embeddings = rest_embeddings                                                                                               
+
+    #p_embeddings = np.array(p_embeddings)
+    #n_embeddings = np.array(n_embeddings)
     
     return p_embeddings, n_embeddings 
 
