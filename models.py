@@ -179,8 +179,11 @@ class AdaptiveQueryStrategy():
         """
         Update the model given the last query batch to the Oracle.
         """
-        self.update_positive_prototype(p_embeddings)
-        self.update_negative_prototype(n_embeddings)
+        # TODO: is this correct?
+        if len(p_embeddings) > 0:
+            self.update_positive_prototype(p_embeddings)
+        if len(n_embeddings) > 0:
+            self.update_negative_prototype(n_embeddings)
 
     def rank_soundscapes(self, soundscape_basenames):
         ranks = []
