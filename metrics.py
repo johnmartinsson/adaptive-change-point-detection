@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 import mir_eval
 import scipy
@@ -55,6 +56,10 @@ def test_metrics():
     print("output   : tp = {}, fp = {}, fn = {}".format(tp, fp, fn))
     print("----------------------------------------")
 
+def coverage(q1, q2):
+    _intersection = intersection(q1, q2)
+    return _intersection / (q1[1]-q1[0])
+
 def intersection(q1, q2):
     (a, b) = q1
     (c, d) = q2
@@ -88,7 +93,7 @@ def average_matched_iou(events_ref, events_pred, min_iou=0.3):
     matches = match_events(events_ref_ndarray, events_pred_ndarray, min_iou=min_iou)
 
     if len(matches) == 0:
-        # TODO: how should this be handled?
+        # TODO: if there are no matches, IOU is 0
         return 0
 
     ref_match_indices = np.array([idx for (idx, _) in matches])
@@ -126,22 +131,24 @@ def precision_score(tp, fp):
 def recall_score(tp, fn):
     return tp / (tp + fn)
 
-def f1_score(precision, recall):
-    return (2 * precision * recall) / (precision + recall)
+def f1_score(tp, fp, fn): #precision, recall):
+    return (2*tp) / (2*tp + fp + fn) #(2 * precision * recall) / (precision + recall)
 
 def f1_score_from_events(events_ref, events_pred, min_iou):
     tp, fp, fn, total_events = compute_tp_fp_fn(events_ref, events_pred, min_iou)
 
-    # TODO: what should this be?
-    if tp + fp == 0:
-        return 0
-    
-    precision = precision_score(tp, fp)
-    recall    = recall_score(tp, fn)
+    # TODO: this should never happen
+    if tp + fp + fn == 0:
+        warnings.warn("F1-score is not defined when tp + fp + fn = 0, F1-score set to 1.0")
+        return 1.0
 
     # TODO: what should this be?
-    if precision + recall == 0:
+    if tp + fp == 0:
+        warnings.warn("Precision is not defined when tp + fp = 0, F1-score set to 0.0")
         return 0
     
-    f1 = f1_score(precision, recall)
+    #precision = precision_score(tp, fp)
+    #recall    = recall_score(tp, fn)
+
+    f1 = f1_score(tp, fp, fn) #precision, recall)
     return f1
