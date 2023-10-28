@@ -19,7 +19,7 @@ def weighted_average(xn_mean, n, xm_mean, m):
 def binary_entropy(p):
     return -p*np.log2(p) - (1-p)*np.log2(1-p)
 
-def queries_from_probas(probas, timings, n_queries):
+def queries_from_probas(probas, timings, n_queries, soundscape_length):
     probas = probas.reshape((len(probas), 1))
     ds = cpd.distance_past_and_future_averages(
         probas,
@@ -44,7 +44,7 @@ def queries_from_probas(probas, timings, n_queries):
 
     # create AL queries
     query_starts  = [0] + peak_timings
-    query_ends = peak_timings + [np.mean(timings[-1])]
+    query_ends = peak_timings + [soundscape_length] #[timings[-1])]
     AL_queries = list(zip(query_starts, query_ends))
 
     return AL_queries
@@ -105,17 +105,17 @@ class AdaptiveQueryStrategy():
             d_p = euclidean_distance(query_embedding, self.p_prototype)
 
             # TODO: think about this ...
-            d_m = np.max([d_n, d_p])
-            d_n = d_n + np.random.randn() * noise_factor * np.sqrt(d_m)
-            d_p = d_p + np.random.randn() * noise_factor * np.sqrt(d_m)
+            d_n = d_n + np.random.randn() * noise_factor
+            d_p = d_p + np.random.randn() * noise_factor
 
-            proba = np.exp(-d_p / temp) / (np.exp(-d_p/temp) + np.exp(-d_n/temp))
+            numerator   = np.exp(-d_p / temp)
+            denominator = (np.exp(-d_p/temp) + np.exp(-d_n/temp))
+            # TODO: is this the correct behaviour?
+            if denominator == 0:
+                proba = 0.5
+            else:
+                proba = numerator / denominator
             probas[idx_query] = proba
-
-        # TODO: this noise factor should probably be removed again. Only here
-        # to study how the method fails.
-        #probas = probas + np.random.randn(len(probas)) * noise_factor
-        #probas = probas / np.max(probas)
 
         return probas
 
@@ -161,7 +161,7 @@ class AdaptiveQueryStrategy():
             timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024)
             probas = self.predict_probas(embeddings, noise_factor=noise_factor)
 
-            al_queries = queries_from_probas(probas, timings, n_queries)
+            al_queries = queries_from_probas(probas, timings, n_queries, soundscape_length)
             al_queries = sorted(al_queries, key=lambda x: x[0])
 
             return al_queries
