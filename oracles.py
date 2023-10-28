@@ -1,4 +1,5 @@
 import os
+import metrics
 import glob
 
 def class_name2class_id(class_name):
@@ -50,6 +51,10 @@ class WeakLabelOracle:
     def query(self, start_time, end_time, soundscape_basename):
         ann = self.annotations[soundscape_basename]
         for (a_start_time, a_end_time, c) in ann:
-            if a_start_time >= start_time and a_end_time <= end_time:
+            q1 = (a_start_time, a_end_time)
+            q2 = (start_time, end_time)
+            if metrics.coverage(q1, q2) >= 0.5:
                 return c
+            #if a_start_time >= start_time and a_end_time <= end_time:
+            #    return c
         return 0
