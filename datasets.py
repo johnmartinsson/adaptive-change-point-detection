@@ -53,7 +53,53 @@ def load_neg_ref(ref_path, soundscape_length):
 
     return neg_ref
 
-def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024):
+def normalize_embeddings(embeddings, base_dir):
+    if 'test' in base_dir:
+        _base_dir = base_dir.replace('test', 'train')
+    else:
+        _base_dir = base_dir
+
+    embedding_mean_path = os.path.join(_base_dir, 'embedding_mean.npy')
+    embedding_std_path  = os.path.join(_base_dir, 'embedding_std.npy')
+
+    if not os.path.exists(embedding_mean_path):
+        print("computing mean and std for data in: ", _base_dir)
+        soundscape_basenames = glob.glob(os.path.join(_base_dir, '*.birdnet.embeddings.txt'))
+        soundscape_basenames = [os.path.basename(s).split('.')[0] for s in soundscape_basenames]
+        train_embeddingss = []
+        for soundscape_basename in soundscape_basenames:
+            assert not 'test' in _base_dir, "normalizing using the test data!"
+            _, train_embeddings = load_timings_and_embeddings(_base_dir, soundscape_basename, normalize=False)
+
+            #print(train_embeddings.shape)
+
+            train_embeddingss.append(train_embeddings)
+        train_embeddingss = np.array(train_embeddingss)
+
+        #print(train_embeddingss.shape)
+        mean = np.mean(train_embeddingss, axis=(0, 1))
+        std  = np.std(train_embeddingss, axis=(0, 1))
+
+        # save mean and std
+        print("save mean and std")
+        print(embedding_mean_path)
+        print(embedding_std_path)
+        np.save(embedding_mean_path, mean)
+        np.save(embedding_std_path, std)
+
+    #mean = np.load(embedding_mean_path)
+    #std  = np.load(embedding_std_path)
+
+    # normalize
+    # TODO: how to handle?
+    #std[std == 0] = 1
+    #embeddings = embeddings - mean
+    #embeddings = embeddings / std #(std + 1e-10)
+
+    return embeddings
+
+
+def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=True):
     file_path = os.path.join(base_dir, '{}.birdnet.embeddings.txt'.format(soundscape_basename))
     timings = []
     embeddings = []
@@ -70,7 +116,16 @@ def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=102
                 embedding[i] = float(value)
             timings.append((float(start_time), float(end_time)))
             embeddings.append(embedding)
-    return np.array(timings), np.array(embeddings)
+
+    embeddings = np.array(embeddings)
+
+    if normalize:
+        embeddings = normalize_embeddings(embeddings, base_dir)
+
+    end_times = np.array([e for (_, e) in timings])
+    indices = end_times <= 30.0
+
+    return np.array(timings)[indices], embeddings[indices]
 
 class FixedQueryActiveLearningDataset:
     def __init__(self, base_dir):
