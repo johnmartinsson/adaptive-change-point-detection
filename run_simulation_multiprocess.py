@@ -6,6 +6,8 @@ import copy
 import glob
 import time
 
+import warnings
+
 from multiprocessing import Pool
 from functools import partial
 
@@ -43,6 +45,35 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
     
     return f1_score, mean_iou_score, p_embeddings, n_embeddings, soundscape_basenames_remaining
 
+def evaluate_annotation_process_on_test_data(query_strategy, base_dir, n_queries, noise_factor):
+    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
+
+    f1s   = []
+    mious = []
+
+    oracle = oracles.WeakLabelOracle(base_dir)
+
+    for soundscape_basename in soundscape_basenames:
+        ref_pos  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
+
+        queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor)
+        pred_pos = oracle.pos_events_from_queries(queries, soundscape_basename)
+
+        if not len(pred_pos) == 0:
+            f1   = metrics.f1_score_from_events(ref_pos, pred_pos, min_iou=0.00000001)
+            miou = metrics.average_matched_iou(ref_pos, pred_pos, min_iou=0.00000001)
+            f1s.append(f1)
+            mious.append(miou)
+        else:
+            warnings.warn("No predictions, results will potentially be skewed ...")
+            # TODO: not sure, strong penalization of no predictions
+            f1s.append(0)
+            mious.append(0)
+            
+    return np.mean(f1s), np.mean(mious)
+
+
+
 def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
     soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
 
@@ -70,23 +101,26 @@ def run_annotation_simulation(idx_init, base_dir, all_soundscape_basenames, n_so
 
 
     # remove initial soundscape
+    # TODO: this is not strictly needed anymore, since we no longer initialize with soundscapes
     remaining_soundscape_basenames = list_difference(all_soundscape_basenames, [init_soundscape_basename])
     remaining_soundscape_basenames = sorted(remaining_soundscape_basenames)
     
     # query strategies
+    # TODO: actually make a parent class QueryStrategy, and then create FixedQueryStrategy, AdaptiveQueryStrategy, CPDQueryStrategy
     if idx_query_strategy == 0:
         query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=False,  fixed_queries=False)
     elif idx_query_strategy == 1:
         query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=False)
     elif idx_query_strategy == 2:
-        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=False, fixed_queries=True)
+        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True, fixed_queries=True, emb_cpd=True)
     elif idx_query_strategy == 3:
         query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=True)
     else:
         raise ValueError("not defined ..")
     
     # initialize strategies with ground truth labels for supplied soundscape
-    query_strategy.initialize_with_ground_truth_labels(init_soundscape_basename)
+    # TODO: this may actually not be necessary ...
+    #query_strategy.initialize_with_ground_truth_labels(init_soundscape_basename)
 
     bns = copy.copy(remaining_soundscape_basenames)
     
@@ -131,22 +165,23 @@ def main():
     snr = '0.0'
     n_soundscapes = 100
     
-    n_queriess = [20] #[7, 10, 20, 30, 40, 50]
+    n_queriess = [7, 10, 30] #[7, 10, 20, 30, 40, 50]
     
-    base_dir      = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.3s_0.05s_large/train_soundscapes_snr_{}/'.format(snr)
-    test_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.3s_0.05s_large/test_soundscapes_snr_{}/'.format(snr)
+    base_dir      = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.8s_0.25s_large_final/train_soundscapes_snr_{}/'.format(snr)
+    test_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.8s_0.25s_large_final/test_soundscapes_snr_{}/'.format(snr)
     test_soundscape_basename = 'soundscape_0'
     
     all_soundscape_basenames = ['soundscape_{}'.format(idx) for idx in range(n_soundscapes)]
     
     
-    n_soundscapes_budget = 80
+    n_soundscapes_budget = n_soundscapes-1
     min_iou = 0.00001
     
     n_init_soundscapes = 10
 
     # only use these strategies
-    query_strategy_indices = [1, 3]
+    # TODO: using only CPD baseline strategy now
+    query_strategy_indices = [1,2,3]
 
     assert(n_soundscapes_budget < n_soundscapes)
     assert(n_init_soundscapes <= n_soundscapes)
@@ -162,7 +197,7 @@ def main():
     for idx_n_queries, n_queries in enumerate(tqdm.tqdm(n_queriess)):
         init_indices = np.random.choice(np.arange(len(all_soundscape_basenames)), n_init_soundscapes)
         for idx_query_strategy in query_strategy_indices:
-            with Pool(8) as p:
+            with Pool(4) as p:
                 f = partial(run_annotation_simulation,
                         # bind state to function
                         base_dir=base_dir,
