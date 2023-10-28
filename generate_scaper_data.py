@@ -54,7 +54,7 @@ for idx_split, split in enumerate(['train', 'test']):
 
     event_time_dist = 'uniform'
     event_time_min = 4 # TODO: this is here because of a CPD problem where we can not detect events before 3 seconds.. need to solve
-    event_time_max = duration-event_duration_max
+    event_time_max = 26 # duration-event_duration_max
 
     snr_dist = 'uniform'
     snr_min = args.snr
