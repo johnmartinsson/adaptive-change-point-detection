@@ -46,10 +46,10 @@ def change_point_detection_from_embeddings(embeddings, timings, distance_fn=cosi
             [t_1, t_2, ..., t_m] : the m change-points
     """
 
-    emb_hop_length = timings[1][0] - timings[0][0]
-    emb_win_length = timings[0][1] - timings[0][0]
+    #emb_hop_length = timings[1][0] - timings[0][0]
+    #emb_win_length = timings[0][1] - timings[0][0]
 
-    offset = int((emb_win_length-emb_hop_length) / emb_hop_length)
+    offset = 0 #int((emb_win_length-emb_hop_length) / emb_hop_length)
 
     ds = distance_past_and_future_averages(embeddings, distance_fn=distance_fn, offset=offset, M = M)
 
