@@ -5,6 +5,8 @@ import query_strategies as qs
 import utils
 import oracles
 
+import warning
+
 import change_point_detection as cpd
 
 from scipy.signal import find_peaks, peak_widths
@@ -112,6 +114,7 @@ class AdaptiveQueryStrategy():
             denominator = (np.exp(-d_p/temp) + np.exp(-d_n/temp))
             # TODO: is this the correct behaviour?
             if denominator == 0:
+                warning.warn("Precision not enough which makes denomenator 0, so we return 0.5. May lead to incorrect results.")
                 proba = 0.5
             else:
                 proba = numerator / denominator
