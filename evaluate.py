@@ -33,12 +33,12 @@ def valid_queries(queries, base_dir, soundscape_basename, n_queries):
     assert tot <= soundscape_length + 0.6, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
 
 def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0):
-    query_strategy.base_dir = base_dir
+    #query_strategy.base_dir = base_dir
     # create oracle
     oracle = oracles.WeakLabelOracle(base_dir)
 
     # create queries
-    queries = query_strategy.predict_queries(soundscape_basename, n_queries, noise_factor=noise_factor)
+    queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor)
 
     valid_queries(queries, base_dir, soundscape_basename, n_queries)
 
