@@ -67,9 +67,9 @@ def main():
         os.makedirs(sim_dir)
 
     snr = '0.0'
-    n_soundscapes = 50
+    n_soundscapes = 100
     
-    n_queriess = [10, 30]
+    n_queriess = [7, 10, 30, 50]
     print("n_queriess: ", n_queriess)
     
     base_dir      = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.8s_0.25s_large/train_soundscapes_snr_{}/'.format(snr)
@@ -79,10 +79,10 @@ def main():
     all_soundscape_basenames = ['soundscape_{}'.format(idx) for idx in range(n_soundscapes)]
     
     
-    n_soundscapes_budget = 20
+    n_soundscapes_budget = 40
     min_iou = 0.00001
     
-    n_init_soundscapes = 5
+    n_init_soundscapes = 10
 
     # only use these strategies
     query_strategy_indices = [1, 3]
@@ -99,6 +99,7 @@ def main():
     for idx_n_queries, n_queries in enumerate(n_queriess):
         init_soundscape_basenames = np.random.choice(['soundscape_{}'.format(idx) for idx in range(n_soundscapes)], n_init_soundscapes)
         
+        # parallelize over this
         for idx_init, init_soundscape_basename in enumerate(tqdm.tqdm((init_soundscape_basenames))):
             # remove initial soundscape
             remaining_soundscape_basenames = list_difference(all_soundscape_basenames, [init_soundscape_basename])
@@ -116,7 +117,7 @@ def main():
             query_strategy_2.initialize_with_ground_truth_labels(init_soundscape_basename)
             query_strategy_3.initialize_with_ground_truth_labels(init_soundscape_basename)
     
-            query_strategies = [query_strategy_0, query_strategy_1, query_strategy_2, query_strategy_3]
+            query_strategies = [None, query_strategy_1, None, query_strategy_3]
     
             bnss = []
             for _ in range(len(query_strategies)):
@@ -137,25 +138,7 @@ def main():
                     
                     f1_scores_test[idx_query_strategy, idx_n_queries, idx_init, budget_count] = f1_test_score
                     miou_scores_test[idx_query_strategy, idx_n_queries, idx_init, budget_count] = miou_test_score
-        
-                    # save prediction probas on test file to disk
-                    #figure_dir_path = os.path.join('figures/strategy_{}/{}'.format(idx_query_strategy, init_soundscape_basename))
-                    #if not os.path.exists(figure_dir_path):
-                    #    os.makedirs(figure_dir_path)
-    
-                    # t1 = time.time()
-                    #visualize.visualize_query_strategy(
-                    #    query_strategy,
-                    #    "strategy {}".format(idx_query_strategy),
-                    #    test_soundscape_basename,
-                    #    test_base_dir,
-                    #    n_queries,
-                    #    vis_queries=False,
-                    #    vis_probs=True,
-                    #    savefile=os.path.join(figure_dir_path, "iteration_{}.png".format(budget_count)),
-                    #)
-                    # print("visualization time: ", time.time() - t1)
-    
+   
                     bns = bnss[idx_query_strategy]
                     #t1 = time.time()
                     f1_train_score, miou_train_score, _, _, bns = simulate_strategy(
