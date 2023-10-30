@@ -1,6 +1,8 @@
 import os
 import numpy as np
 
+import warnings
+
 import utils
 import metrics
 import oracles
@@ -32,13 +34,13 @@ def valid_queries(queries, base_dir, soundscape_basename, n_queries):
     assert tot >= soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
     assert tot <= soundscape_length + 0.6, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
 
-def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0):
+def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0, normalize=False):
     #query_strategy.base_dir = base_dir
     # create oracle
     oracle = oracles.WeakLabelOracle(base_dir)
 
     # create queries
-    queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor)
+    queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor, normalize=normalize)
 
     valid_queries(queries, base_dir, soundscape_basename, n_queries)
 
@@ -51,6 +53,10 @@ def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_i
     if len(pos_pred) == 0:
         f1_score = 0
         mean_iou_score = 0
+        warnings.warn('Unlikely behaviour for {}, no positive labels from oracle, may skew results ...'.format(soundscape_basename))
+        print("pos_pred: ", pos_pred)
+        print("pos_ref: ", pos_ref)
+        print("queries: ", queries)
     else:
         f1_score       = metrics.f1_score_from_events(pos_ref, pos_pred, min_iou=min_iou)
         mean_iou_score = metrics.average_matched_iou(pos_ref, pos_pred, min_iou=min_iou)
