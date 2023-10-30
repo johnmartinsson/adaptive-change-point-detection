@@ -5,7 +5,7 @@ import query_strategies as qs
 import utils
 import oracles
 
-import warning
+import warnings
 
 import change_point_detection as cpd
 
@@ -56,7 +56,7 @@ class AdaptiveQueryStrategy():
     """
     The base class for an active learning model.
     """
-    def __init__(self, base_dir, random_soundscape, fixed_queries, emb_cpd=False):
+    def __init__(self, base_dir, random_soundscape, fixed_queries, emb_cpd=False, normal_prototypes=True):
         #assert not fixed_queries and emb_cpd, "both should not be true at the same time ..."
         #self.base_dir          = base_dir
         self.random_soundscape = random_soundscape
@@ -64,10 +64,15 @@ class AdaptiveQueryStrategy():
         self.emb_cpd           = emb_cpd
 
         # initial state of prototypes
-        self.n_prototype = np.random.randn(1024)
         self.n_count     = 0
-        self.p_prototype = np.random.randn(1024)
         self.p_count     = 0
+
+        if normal_prototypes:
+            self.n_prototype = np.random.randn(1024)
+            self.p_prototype = np.random.randn(1024)
+        else:
+            self.n_prototype = np.random.rand(1024)
+            self.p_prototype = np.random.rand(1024)
 
     def initialize_with_ground_truth_labels(self, base_dir, soundscape_basename):
         #print("initialize: ", soundscape_basename)
@@ -114,7 +119,7 @@ class AdaptiveQueryStrategy():
             denominator = (np.exp(-d_p/temp) + np.exp(-d_n/temp))
             # TODO: is this the correct behaviour?
             if denominator == 0:
-                warning.warn("Precision not enough which makes denomenator 0, so we return 0.5. May lead to incorrect results.")
+                warnings.warn("Precision not enough which makes denomenator 0, so we return 0.5. May lead to incorrect results.")
                 proba = 0.5
             else:
                 proba = numerator / denominator
@@ -146,13 +151,13 @@ class AdaptiveQueryStrategy():
         return pos_events
 
 
-    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0):
+    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=False):
         """
         Return the query timings.
         """
         soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
         if self.emb_cpd:
-            cpd_queries = qs.change_point_query_strategy(n_queries, base_dir, soundscape_basename, soundscape_length)
+            cpd_queries = qs.change_point_query_strategy(n_queries, base_dir, soundscape_basename, soundscape_length, normalize=normalize)
             return cpd_queries
         if self.fixed_queries:
 
@@ -161,7 +166,7 @@ class AdaptiveQueryStrategy():
             
             return fix_queries
         else:
-            timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024)
+            timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=normalize)
             probas = self.predict_probas(embeddings, noise_factor=noise_factor)
 
             al_queries = queries_from_probas(probas, timings, n_queries, soundscape_length)
