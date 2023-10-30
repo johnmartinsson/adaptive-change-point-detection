@@ -14,7 +14,7 @@ import change_point_detection as cpd
 
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
-def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, savefile=None, noise_factor=0):
+def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, savefile=None, noise_factor=0, normalize=True):
     oracle = oracles.WeakLabelOracle(base_dir)
     
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
