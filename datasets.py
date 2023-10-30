@@ -87,19 +87,18 @@ def normalize_embeddings(embeddings, base_dir):
         np.save(embedding_mean_path, mean)
         np.save(embedding_std_path, std)
 
-    #mean = np.load(embedding_mean_path)
-    #std  = np.load(embedding_std_path)
+    mean = np.load(embedding_mean_path)
+    std  = np.load(embedding_std_path)
 
     # normalize
     # TODO: how to handle?
-    #std[std == 0] = 1
-    #embeddings = embeddings - mean
-    #embeddings = embeddings / std #(std + 1e-10)
+    std[std == 0] = 1
+    embeddings = embeddings - mean
+    embeddings = embeddings / std #(std + 1e-10)
 
     return embeddings
 
-
-def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=True):
+def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=False):
     file_path = os.path.join(base_dir, '{}.birdnet.embeddings.txt'.format(soundscape_basename))
     timings = []
     embeddings = []
@@ -120,6 +119,7 @@ def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=102
     embeddings = np.array(embeddings)
 
     if normalize:
+        #print("normalizing embeddings ...")
         embeddings = normalize_embeddings(embeddings, base_dir)
 
     end_times = np.array([e for (_, e) in timings])
