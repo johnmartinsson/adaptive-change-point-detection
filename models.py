@@ -5,6 +5,8 @@ import query_strategies as qs
 import utils
 import oracles
 
+import warnings
+
 import change_point_detection as cpd
 
 from scipy.signal import find_peaks, peak_widths
@@ -19,7 +21,7 @@ def weighted_average(xn_mean, n, xm_mean, m):
 def binary_entropy(p):
     return -p*np.log2(p) - (1-p)*np.log2(1-p)
 
-def queries_from_probas(probas, timings, n_queries):
+def queries_from_probas(probas, timings, n_queries, soundscape_length):
     probas = probas.reshape((len(probas), 1))
     ds = cpd.distance_past_and_future_averages(
         probas,
@@ -44,32 +46,40 @@ def queries_from_probas(probas, timings, n_queries):
 
     # create AL queries
     query_starts  = [0] + peak_timings
-    query_ends = peak_timings + [np.mean(timings[-1])]
+    query_ends = peak_timings + [soundscape_length] #[timings[-1])]
     AL_queries = list(zip(query_starts, query_ends))
 
     return AL_queries
 
+# TODO: actually make a parent class QueryStrategy, and then create FixedQueryStrategy, AdaptiveQueryStrategy, CPDQueryStrategy
 class AdaptiveQueryStrategy():
     """
     The base class for an active learning model.
     """
-    def __init__(self, base_dir, random_soundscape, fixed_queries):
-        self.base_dir          = base_dir
+    def __init__(self, base_dir, random_soundscape, fixed_queries, emb_cpd=False, normal_prototypes=True):
+        #assert not fixed_queries and emb_cpd, "both should not be true at the same time ..."
+        #self.base_dir          = base_dir
         self.random_soundscape = random_soundscape
         self.fixed_queries     = fixed_queries
+        self.emb_cpd           = emb_cpd
 
         # initial state of prototypes
-        self.n_prototype = np.zeros(1024)
         self.n_count     = 0
-        self.p_prototype = np.zeros(1024)
         self.p_count     = 0
 
-    def initialize_with_ground_truth_labels(self, soundscape_basename):
+        if normal_prototypes:
+            self.n_prototype = np.random.randn(1024)
+            self.p_prototype = np.random.randn(1024)
+        else:
+            self.n_prototype = np.random.rand(1024)
+            self.p_prototype = np.random.rand(1024)
+
+    def initialize_with_ground_truth_labels(self, base_dir, soundscape_basename):
         #print("initialize: ", soundscape_basename)
-        oracle = oracles.WeakLabelOracle(self.base_dir)
+        oracle = oracles.WeakLabelOracle(base_dir)
         
         # load initial queries and embeddings
-        queries, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename)
+        queries, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
         
         # label the embeddings
         labels = []
@@ -101,13 +111,19 @@ class AdaptiveQueryStrategy():
             d_n = euclidean_distance(query_embedding, self.n_prototype)
             d_p = euclidean_distance(query_embedding, self.p_prototype)
 
-            proba = np.exp(-d_p / temp) / (np.exp(-d_p/temp) + np.exp(-d_n/temp))
-            probas[idx_query] = proba
+            # TODO: think about this ...
+            d_n = d_n + np.random.randn() * noise_factor
+            d_p = d_p + np.random.randn() * noise_factor
 
-        # TODO: this noise factor should probably be removed again. Only here
-        # to study how the method fails.
-        probas = probas + np.random.rand(len(probas)) * noise_factor
-        probas = probas / np.max(probas)
+            numerator   = np.exp(-d_p / temp)
+            denominator = (np.exp(-d_p/temp) + np.exp(-d_n/temp))
+            # TODO: is this the correct behaviour?
+            if denominator == 0:
+                warnings.warn("Precision not enough which makes denomenator 0, so we return 0.5. May lead to incorrect results.")
+                proba = 0.5
+            else:
+                proba = numerator / denominator
+            probas[idx_query] = proba
 
         return probas
 
@@ -135,22 +151,25 @@ class AdaptiveQueryStrategy():
         return pos_events
 
 
-    def predict_queries(self, soundscape_basename, n_queries, noise_factor=0):
+    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=False):
         """
         Return the query timings.
         """
+        soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
+        if self.emb_cpd:
+            cpd_queries = qs.change_point_query_strategy(n_queries, base_dir, soundscape_basename, soundscape_length, normalize=normalize)
+            return cpd_queries
         if self.fixed_queries:
-            soundscape_length = qs.get_soundscape_length(self.base_dir, soundscape_basename)
 
             fix_queries = np.linspace(0, soundscape_length, n_queries+1)
             fix_queries = list(zip(fix_queries[:-1], fix_queries[1:]))
             
             return fix_queries
         else:
-            timings, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename, embedding_dim=1024)
+            timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=normalize)
             probas = self.predict_probas(embeddings, noise_factor=noise_factor)
 
-            al_queries = queries_from_probas(probas, timings, n_queries)
+            al_queries = queries_from_probas(probas, timings, n_queries, soundscape_length)
             al_queries = sorted(al_queries, key=lambda x: x[0])
 
             return al_queries
@@ -193,9 +212,9 @@ class AdaptiveQueryStrategy():
 
         return utils.sort_by_rank(ranks=ranks, values=soundscape_basenames)
 
-    def entropy_score(self, soundscape_basename):
+    def entropy_score(self, soundscape_basename, base_dir):
         # load the embeddings for the soundscape
-        _, embeddings = datasets.load_timings_and_embeddings(self.base_dir, soundscape_basename, embedding_dim=1024)
+        _, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024)
 
         probas = self.predict_probas(embeddings)
         entropies = [binary_entropy(p) for p in probas]
