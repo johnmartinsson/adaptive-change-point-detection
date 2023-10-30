@@ -1,3 +1,4 @@
+import os
 import numpy as np
 
 import datasets
@@ -151,7 +152,7 @@ class AdaptiveQueryStrategy():
         return pos_events
 
 
-    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=False):
+    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=False, iteration=0):
         """
         Return the query timings.
         """
@@ -168,6 +169,12 @@ class AdaptiveQueryStrategy():
         else:
             timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=normalize)
             probas = self.predict_probas(embeddings, noise_factor=noise_factor)
+
+            proba_dir = os.path.join(base_dir, "probas")
+            if not os.path.exists(proba_dir):
+                print("creating proba dir: ", proba_dir)
+                os.makedirs(proba_dir)
+            np.save(os.path.join(proba_dir, "{:05d}_{}.npy".format(iteration, soundscape_basename)), probas)
 
             al_queries = queries_from_probas(probas, timings, n_queries, soundscape_length)
             al_queries = sorted(al_queries, key=lambda x: x[0])

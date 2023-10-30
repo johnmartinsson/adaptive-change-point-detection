@@ -31,16 +31,16 @@ def valid_queries(queries, base_dir, soundscape_basename, n_queries):
         tot += L
 
     # TODO: hacky add of 0.5 and check less than because of embeddings in BirdNET...
-    assert tot >= soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
-    assert tot <= soundscape_length + 0.6, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
+    assert tot == soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
+    #assert tot <= soundscape_length + 0.6, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
 
-def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0, normalize=False):
+def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0, normalize=False, iteration=0):
     #query_strategy.base_dir = base_dir
     # create oracle
     oracle = oracles.WeakLabelOracle(base_dir)
 
     # create queries
-    queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor, normalize=normalize)
+    queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor, normalize=normalize, iteration=iteration)
 
     valid_queries(queries, base_dir, soundscape_basename, n_queries)
 

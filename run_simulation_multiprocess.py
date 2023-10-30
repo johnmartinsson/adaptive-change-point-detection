@@ -25,7 +25,7 @@ import matplotlib
 def list_difference(l1, l2):
     return sorted(list(set(l1).difference(l2)))
 
-def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir, min_iou, noise_factor, normalize):
+def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir, min_iou, noise_factor, normalize, iteration):
     next_soundscape_basename = query_strategy.next_soundscape_basename(soundscape_basenames)
 
     
@@ -37,7 +37,8 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
         n_queries           = n_queries,
         min_iou             = min_iou,
         noise_factor        = noise_factor,
-        normalize           = normalize
+        normalize           = normalize,
+        iteration           = iteration,
     )
 
     soundscape_basenames_remaining = list_difference(soundscape_basenames, [next_soundscape_basename])
@@ -151,6 +152,7 @@ def run_annotation_simulation(idx_init, base_dir, all_soundscape_basenames, n_so
             min_iou              = min_iou,
             noise_factor         = noise_factor,
             normalize            = normalize,
+            iteration            = budget_count,
         )
 
         f1_scores_train[budget_count]   = f1_train_score
