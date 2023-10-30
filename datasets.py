@@ -124,8 +124,10 @@ def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=102
 
     end_times = np.array([e for (_, e) in timings])
     indices = end_times <= 30.0
+    timings = np.array(timings)[indices]
+    embeddings = embeddings[indices]
 
-    return np.array(timings)[indices], embeddings[indices]
+    return timings, embeddings
 
 class FixedQueryActiveLearningDataset:
     def __init__(self, base_dir):
