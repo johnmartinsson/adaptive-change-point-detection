@@ -111,17 +111,17 @@ def run_annotation_simulation(idx_init, base_dir, all_soundscape_basenames, n_so
     # TODO: this is not strictly needed anymore, since we no longer initialize with soundscapes
     remaining_soundscape_basenames = list_difference(all_soundscape_basenames, [init_soundscape_basename])
     remaining_soundscape_basenames = sorted(remaining_soundscape_basenames)
-    
+
     # query strategies
     # TODO: actually make a parent class QueryStrategy, and then create FixedQueryStrategy, AdaptiveQueryStrategy, CPDQueryStrategy
     if idx_query_strategy == 0:
-        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=False,  fixed_queries=False)
+        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=False,  fixed_queries=False, normal_prototypes=True)
     elif idx_query_strategy == 1:
-        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=False)
+        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=False, normal_prototypes=True)
     elif idx_query_strategy == 2:
-        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True, fixed_queries=True, emb_cpd=True)
+        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True, fixed_queries=True, emb_cpd=True, normal_prototypes=True)
     elif idx_query_strategy == 3:
-        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=True)
+        query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=True, normal_prototypes=True)
     else:
         raise ValueError("not defined ..")
     
@@ -178,7 +178,7 @@ def main():
     
     base_dir      = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.8s_0.25s_large_final/train_soundscapes_snr_{}/'.format(snr)
     test_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/me_0.8s_0.25s_large_final/test_soundscapes_snr_{}/'.format(snr)
-    test_soundscape_basename = 'soundscape_0'
+    #test_soundscape_basename = 'soundscape_0'
     
     all_soundscape_basenames = ['soundscape_{}'.format(idx) for idx in range(n_soundscapes)]
     
@@ -187,7 +187,7 @@ def main():
     min_iou = 0.00001
     
     n_init_soundscapes = 10
-    normalize          = True
+    normalize_embeddings = True
 
     # only use these strategies
     # TODO: using only CPD baseline strategy now
@@ -210,15 +210,15 @@ def main():
             with Pool(8) as p:
                 f = partial(run_annotation_simulation,
                         # bind state to function
-                        base_dir=base_dir,
-                        all_soundscape_basenames=all_soundscape_basenames,
-                        n_soundscapes_budget=n_soundscapes_budget,
-                        idx_query_strategy=idx_query_strategy,
-                        test_base_dir=test_base_dir,
-                        n_queries=n_queries,
-                        min_iou=min_iou,
-                        noise_factor=0,
-                        normalize=normalize,
+                        base_dir                 = base_dir,
+                        all_soundscape_basenames = all_soundscape_basenames,
+                        n_soundscapes_budget     = n_soundscapes_budget,
+                        idx_query_strategy       = idx_query_strategy,
+                        test_base_dir            = test_base_dir,
+                        n_queries                = n_queries,
+                        min_iou                  = min_iou,
+                        noise_factor             = 0,
+                        normalize                = normalize_embeddings,
                 )
                 res = p.map(f, init_indices)
                 res = np.array(list(zip(*res)))
