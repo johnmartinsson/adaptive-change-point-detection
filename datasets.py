@@ -24,34 +24,43 @@ def compute_neg_from_pos(pos_ref, soundscape_length):
     neg_ref = []
     prev_pos_end_time   = 0
     for (curr_pos_start_time, curr_pos_end_time) in pos_ref:
+
         neg_start_time = prev_pos_end_time
         neg_end_time   = curr_pos_start_time
-        neg_ref.append((neg_start_time, neg_end_time))
+
+        if curr_pos_start_time >= prev_pos_end_time:
+            assert neg_start_time <= neg_end_time, "start time less than end time ..."
+            neg_ref.append((neg_start_time, neg_end_time))
     
         prev_pos_end_time   = curr_pos_end_time
     
-    if prev_pos_end_time < soundscape_length:
-        neg_ref.append((prev_pos_end_time, soundscape_length))
+    end_times = [e for (_, e) in pos_ref]
+    latest_end_time = np.max(end_times)
+
+    if latest_end_time < soundscape_length:
+        neg_ref.append((latest_end_time, soundscape_length))
 
     return neg_ref
 
    
 def load_neg_ref(ref_path, soundscape_length):
     pos_ref = load_pos_ref(ref_path)
-
-    neg_ref = []
-    prev_pos_end_time   = 0
-    for (curr_pos_start_time, curr_pos_end_time) in pos_ref:
-        neg_start_time = prev_pos_end_time
-        neg_end_time   = curr_pos_start_time
-        neg_ref.append((neg_start_time, neg_end_time))
-    
-        prev_pos_end_time   = curr_pos_end_time
-    
-    if prev_pos_end_time < soundscape_length:
-        neg_ref.append((prev_pos_end_time, soundscape_length))
-
+    neg_ref = compute_neg_from_pos(pos_ref, soundscape_length)
     return neg_ref
+
+    #neg_ref = []
+    #prev_pos_end_time   = 0
+    #for (curr_pos_start_time, curr_pos_end_time) in pos_ref:
+    #    neg_start_time = prev_pos_end_time
+    #    neg_end_time   = curr_pos_start_time
+    #    neg_ref.append((neg_start_time, neg_end_time))
+   # 
+   #     prev_pos_end_time   = curr_pos_end_time
+   # 
+   # if prev_pos_end_time < soundscape_length:
+   #     neg_ref.append((prev_pos_end_time, soundscape_length))
+#
+#    return neg_ref
 
 def normalize_embeddings(embeddings, base_dir):
     if 'test' in base_dir:
