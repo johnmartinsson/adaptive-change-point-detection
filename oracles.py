@@ -3,7 +3,13 @@ import metrics
 import glob
 
 def class_name2class_id(class_name):
+    # TODO: rewrite this to multi-class formulation,
+    # for now only handles binary problems
     if 'me' in class_name:
+        return 1
+    elif 'dog' in class_name:
+        return 1
+    elif 'baby' in class_name:
         return 1
     else:
         return 0
@@ -50,11 +56,12 @@ class WeakLabelOracle:
 
     def query(self, start_time, end_time, soundscape_basename):
         ann = self.annotations[soundscape_basename]
+        #print("ann: ", ann)
         for (a_start_time, a_end_time, c) in ann:
-            #q1 = (a_start_time, a_end_time)
-            #q2 = (start_time, end_time)
-            #if metrics.coverage(q1, q2) >= 0.5:
-            #    return c
-            if a_start_time >= start_time and a_end_time <= end_time:
+            q1 = (a_start_time, a_end_time)
+            q2 = (start_time, end_time)
+            if metrics.coverage(q1, q2) > 0.05:
                 return c
+            #if a_start_time >= start_time and a_end_time <= end_time:
+            #    return c
         return 0
