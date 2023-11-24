@@ -57,9 +57,10 @@ class AdaptiveQueryStrategy():
     """
     The base class for an active learning model.
     """
-    def __init__(self, base_dir, random_soundscape, fixed_queries, emb_cpd=False, normal_prototypes=True):
+    def __init__(self, base_dir, random_soundscape, fixed_queries, opt_queries=False, emb_cpd=False, normal_prototypes=True):
         #assert not fixed_queries and emb_cpd, "both should not be true at the same time ..."
         #self.base_dir          = base_dir
+        self.opt_queries       = opt_queries
         self.random_soundscape = random_soundscape
         self.fixed_queries     = fixed_queries
         self.emb_cpd           = emb_cpd
@@ -157,6 +158,10 @@ class AdaptiveQueryStrategy():
         Return the query timings.
         """
         soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
+        if self.opt_queries:
+            opt_queries = qs.optimal_query_strategy(base_dir, soundscape_basename, soundscape_length)
+
+            return opt_queries
         if self.emb_cpd:
             cpd_queries = qs.change_point_query_strategy(n_queries, base_dir, soundscape_basename, soundscape_length, normalize=normalize)
             return cpd_queries
