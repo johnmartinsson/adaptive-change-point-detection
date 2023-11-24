@@ -4,6 +4,7 @@ import numpy as np
 import soundfile as sf
 import glob
 import argparse
+import metrics
 
 parser = argparse.ArgumentParser(description='A data generation script.')
 parser.add_argument('--data_dir', help='The data dir containing the train and test source directories', required=True, type=str)
@@ -13,6 +14,15 @@ parser.add_argument('--n_soundscapes', help='The number of soundscapes to genera
 parser.add_argument('--bg_label', help='The backgrounds to use.', required=False, type=str)
 parser.add_argument('--fg_label', help='The foregrounds to use.', required=False, type=str)
 args = parser.parse_args()
+
+def has_overlapping_events(annotation_list):
+    for (s1, e1, c) in annotation_list:
+        for (s2, e2, c) in annotation_list:
+            q1 = (s1, e1)
+            q2 = (s2, e2)
+            if metrics.coverage(q1, q2) > 0 and metrics.coverage(q1, q2) < 1.0:
+                return True
+    return False
 
 for idx_split, split in enumerate(['train', 'test']):
     print("Generating {} soundscapes ...".format(split))
@@ -49,8 +59,8 @@ for idx_split, split in enumerate(['train', 'test']):
     source_time = 0.0
 
     event_duration_dist = 'uniform'
-    event_duration_min = 1 #0.1
-    event_duration_max = 1 #0.3
+    event_duration_min = 4 #0.1
+    event_duration_max = 4 #0.3
 
     event_time_dist = 'uniform'
     event_time_min = 4 # TODO: this is here because of a CPD problem where we can not detect events before 3 seconds.. need to solve
@@ -111,21 +121,31 @@ for idx_split, split in enumerate(['train', 'test']):
         jamsfile = os.path.join(outfolder, "{}_{:d}.jams".format(basename, n))
         txtfile = os.path.join(outfolder, "{}_{:d}.txt".format(basename, n))
         
-        sc.generate(
-            audio_path            = audiofile,
-            jams_path             = jamsfile,
-            allow_repeated_label  = True,
-            allow_repeated_source = False,
-            reverb                = None, 
-            fix_clipping          = True, # TODO: is this reasonable?
-            peak_normalization    = False,
-            quick_pitch_time      = False,
-            save_isolated_events  = False,
-            isolated_events_path  = None,
-            disable_sox_warnings  = True,
-            no_audio              = False,
-            txt_path              = txtfile,
-        )
+        # TODO: maybe loop until no overlapping events?
+        overlapping_events = True
+        while overlapping_events:
+            sounscape_audio, soundscape_jam, annotation_list, event_audio_list = sc.generate(
+                audio_path            = audiofile,
+                jams_path             = jamsfile,
+                allow_repeated_label  = True,
+                allow_repeated_source = False,
+                reverb                = None, 
+                fix_clipping          = True, # TODO: is this reasonable?
+                peak_normalization    = False,
+                quick_pitch_time      = False,
+                save_isolated_events  = False,
+                isolated_events_path  = None,
+                disable_sox_warnings  = True,
+                no_audio              = True, #False,
+                txt_path              = txtfile,
+            )
+
+            overlapping_events = has_overlapping_events(annotation_list)
+            if overlapping_events:
+                print("OVERLAPPING: ", annotation_list)
+
+        # TODO: generate audio from jams file
+        scaper.generate_from_jams(jams_infile = jamsfile, audio_outfile = audiofile)
    
     #txt_paths = glob.glob(os.path.join(outfolder, "*.txt"))
     #print("#########################################################")
