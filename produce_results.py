@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import sys
 import matplotlib.pyplot as plt
 
 def get_miou_scores_test(result_dir):
@@ -104,23 +105,23 @@ def table_online_annotation_quality(result_dir):
 
 def main():
     # TODO
-    result_dir = 'results/baby_L=1.0_N=7'
-    plot_model_performance_on_test_data(result_dir)
-    plot_annotation_quality_on_test_data(result_dir)
+    sim_dir = sys.argv[1]
+    plot_model_performance_on_test_data(sim_dir)
+    plot_annotation_quality_on_test_data(sim_dir)
     print("")
-    table_online_annotation_quality(result_dir)
+    table_online_annotation_quality(sim_dir)
 
-    result_dir = 'results/dog_L=1.0_N=7'
-    plot_model_performance_on_test_data(result_dir)
-    plot_annotation_quality_on_test_data(result_dir)
-    print("")
-    table_online_annotation_quality(result_dir)
+    #sim_dir = os.path.join(result_dir, 'dog_L=1.0_N=7')
+    #plot_model_performance_on_test_data(sim_dir)
+    #plot_annotation_quality_on_test_data(sim_dir)
+    #print("")
+    #table_online_annotation_quality(sim_dir)
 
-    result_dir = 'results/me_L=0.8_N=7'
-    plot_model_performance_on_test_data(result_dir)
-    plot_annotation_quality_on_test_data(result_dir)
-    print("")
-    table_online_annotation_quality(result_dir)
+    #sim_dir = os.path.join(result_dir, 'me_L=0.8_N=7')
+    #plot_model_performance_on_test_data(sim_dir)
+    #plot_annotation_quality_on_test_data(sim_dir)
+    #print("")
+    #table_online_annotation_quality(sim_dir)
 
 
 if __name__ == '__main__':
