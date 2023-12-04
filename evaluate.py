@@ -37,10 +37,10 @@ def valid_queries(queries, base_dir, soundscape_basename, n_queries):
     assert tot <= soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
     #assert tot <= soundscape_length + 0.6, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
 
-def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0, normalize=False, iteration=0, emb_win_length=1.0):
+def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0, normalize=False, iteration=0, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0):
     #query_strategy.base_dir = base_dir
     # create oracle
-    oracle = oracles.WeakLabelOracle(base_dir)
+    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise)
 
     # create queries
     queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor, normalize=normalize, iteration=iteration)
@@ -146,7 +146,7 @@ def get_embeddings_3(pos_ann, base_dir, soundscape_basename, emb_win_length):
                 idx_pos_embs[idx] = True
                 embs_label[idx] = 1
             # TODO: how do I do this choice justly?
-            if metrics.coverage(ann_q, emb_q) >= 0.2:
+            if metrics.coverage(ann_q, emb_q) >= 0.001:
                 #print("1: ", emb_q, ann_q)
                 idx_pos_embs[idx] = True
                 embs_label[idx] = 1

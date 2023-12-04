@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import metrics
 import glob
@@ -31,10 +32,14 @@ def load_annotations(file_path):
     return annotations
 
 class WeakLabelOracle:
-    def __init__(self, base_dir):
+    def __init__(self, base_dir, fp_noise, fn_noise):
         super(WeakLabelOracle, self).__init__()
         annotation_file_paths = glob.glob(os.path.join(base_dir, '*.txt'))
         annotation_file_paths = list(filter(lambda x: not "embedding" in x, annotation_file_paths))
+
+        # noisy oracle
+        self.fp_noise = fp_noise
+        self.fn_noise = fn_noise
 
         if len(annotation_file_paths) == 0:
             raise ValueError("no annotation files in: {}".format(base_dir))
@@ -61,7 +66,6 @@ class WeakLabelOracle:
             q1 = (a_start_time, a_end_time)
             q2 = (start_time, end_time)
             if metrics.coverage(q1, q2) > 0.05:
-                return c
-            #if a_start_time >= start_time and a_end_time <= end_time:
-            #    return c
-        return 0
+                return np.random.choice([0, 1], p=[self.fn_noise, 1-self.fn_noise])
+
+        return np.random.choice([0, 1], p=[1-self.fp_noise, self.fp_noise])
