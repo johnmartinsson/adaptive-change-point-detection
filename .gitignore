@@ -1,3 +1,12 @@
+figures
+results
+results_1
+test
+test_results
+old_results
+results.zip
+tmp.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
