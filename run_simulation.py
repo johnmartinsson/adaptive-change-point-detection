@@ -31,7 +31,7 @@ import argparse
 def list_difference(l1, l2):
     return sorted(list(set(l1).difference(l2)))
 
-def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir, min_iou, noise_factor, normalize, iteration, emb_win_length):
+def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir, min_iou, noise_factor, normalize, iteration, emb_win_length, fp_noise, fn_noise):
     next_soundscape_basename = query_strategy.next_soundscape_basename(soundscape_basenames)
 
     # evaluate label-quality and get embeddings
@@ -44,7 +44,9 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
         noise_factor        = noise_factor,
         normalize           = normalize,
         iteration           = iteration,
-        emb_win_length      = emb_win_length
+        emb_win_length      = emb_win_length,
+        fp_noise            = fp_noise,
+        fn_noise            = fn_noise
     )
 
     soundscape_basenames_remaining = list_difference(soundscape_basenames, [next_soundscape_basename])
@@ -56,13 +58,13 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
     return f1_score, mean_iou_score, p_embeddings, n_embeddings, soundscape_basenames_remaining, soundscape_preds
 
 # TODO: include this in default loop
-def evaluate_annotation_process_on_test_data(query_strategy, base_dir, n_queries, noise_factor):
+def evaluate_annotation_process_on_test_data(query_strategy, base_dir, n_queries, noise_factor, fp_noise=0.0, fn_noise=0.0):
     soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
 
     f1s   = []
     mious = []
 
-    oracle = oracles.WeakLabelOracle(base_dir)
+    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=0.0, fn_noise=0.0)
 
     for soundscape_basename in soundscape_basenames:
         ref_pos  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
@@ -120,6 +122,8 @@ def main():
     parser.add_argument('--n_eval_freq', required=True, type=int)
     parser.add_argument('--n_runs', required=True, type=int)
     parser.add_argument('--emb_win_length', required=True, type=float)
+    parser.add_argument('--fp_noise', required=True, type=float)
+    parser.add_argument('--fn_noise', required=True, type=float)
 
     args = parser.parse_args()
 
@@ -199,7 +203,7 @@ def main():
 
                 if budget_count % n_eval == 0:
                     f1_test_score, miou_test_score   = evaluate_model_on_test_data(query_strategy, test_base_dir)
-                    f1_train_score, miou_train_score = evaluate_annotation_process_on_test_data(query_strategy, test_base_dir, n_queries, noise_factor)
+                    f1_train_score, miou_train_score = evaluate_annotation_process_on_test_data(query_strategy, test_base_dir, n_queries, noise_factor, args.fp_noise, args.fn_noise)
 
                     f1_scores_train[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = f1_train_score
                     miou_scores_train[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = miou_train_score
@@ -242,7 +246,9 @@ def main():
                     noise_factor         = noise_factor,
                     normalize            = normalize_embeddings,
                     iteration            = budget_count,
-                    emb_win_length       = args.emb_win_length
+                    emb_win_length       = args.emb_win_length,
+                    fp_noise             = args.fp_noise,
+                    fn_noise             = args.fn_noise,
                 )
 
                 # retreive and store annotations to disk
