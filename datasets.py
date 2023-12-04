@@ -19,6 +19,8 @@ def load_pos_ref(ref_path):
     return pos_ref
 
 def compute_neg_from_pos(pos_ref, soundscape_length):
+    if len(pos_ref) == 0:
+        return [(0, soundscape_length)]
     pos_ref = sorted(pos_ref, key=lambda x: x[0])
 
     neg_ref = []
