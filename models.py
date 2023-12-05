@@ -153,7 +153,7 @@ class AdaptiveQueryStrategy():
         return pos_events
 
 
-    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=False, iteration=0):
+    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=True, iteration=0):
         """
         Return the query timings.
         """
