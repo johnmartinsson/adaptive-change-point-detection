@@ -6,6 +6,10 @@ test_results
 old_results
 results.zip
 tmp.txt
+./results_test
+
+*.tsv
+*.npy
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
