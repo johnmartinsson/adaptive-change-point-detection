@@ -1,0 +1,3 @@
+#python run_simulation.py --results_dir=results_test --name=me   --n_soundscapes_budget=200 --n_queries_budget=7 --n_runs=1 --emb_win_length=1.0 --fp_noise=0.0 --fn_noise=0.0 --class_name=me
+python run_simulation.py --results_dir=results_test --name=$1 --n_soundscapes_budget=200 --n_queries_budget=7 --n_runs=1 --emb_win_length=1.0 --fp_noise=0.0 --fn_noise=0.0 --class_name=$1
+#python run_simulation.py --results_dir=results_test --name=dog  --n_soundscapes_budget=200 --n_queries_budget=7 --n_runs=1 --emb_win_length=1.0 --fp_noise=0.0 --fn_noise=0.0 --class_name=dog
