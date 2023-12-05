@@ -4,13 +4,21 @@ import glob
 
 import warnings
 
-import utils
 import metrics
 import oracles
 import datasets
 import query_strategies as qs
+import models
 
 import argparse
+
+def get_positive_annotations(fp):
+    with open(fp, 'r') as f:
+        lines = f.readlines()
+        ls    = [l.split('\t') for l in lines[1:]]
+        anns = [(float(s), float(e)) for (s, e, _) in ls]
+    return anns
+
 
 def valid_queries(queries, base_dir, soundscape_basename, n_queries):
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
@@ -162,59 +170,172 @@ def get_embeddings_3(pos_ann, base_dir, soundscape_basename, emb_win_length):
 
     return p_embs, n_embs, embs_label #, idx_pos_embs, idx_neg_embs
 
+# TODO: include this in default loop
+def evaluate_annotation_process_on_test_data(query_strategy, base_dir, n_queries, noise_factor, fp_noise=0.0, fn_noise=0.0):
+    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
+
+    f1s   = []
+    mious = []
+
+    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=0.0, fn_noise=0.0)
+
+    for soundscape_basename in soundscape_basenames:
+        ref_pos  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
+
+        queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor)
+        pred_pos = oracle.pos_events_from_queries(queries, soundscape_basename)
+
+        if not len(pred_pos) == 0:
+            f1   = metrics.f1_score_from_events(ref_pos, pred_pos, min_iou=0.00000001)
+            miou = metrics.average_matched_iou(ref_pos, pred_pos, min_iou=0.00000001)
+            f1s.append(f1)
+            mious.append(miou)
+        else:
+            warnings.warn("No predictions, results will potentially be skewed ...")
+            print("query strategy, fixed = {}, CPD = {}".format(query_strategy.fixed_queries, query_strategy.emb_cpd))
+            print("pos_pred: ", pred_pos)
+            print("pos_ref: ", ref_pos)
+            print("queries: ", queries)
+            # TODO: not sure, strong penalization of no predictions
+            f1s.append(0)
+            mious.append(0)
+            
+    return np.mean(f1s), np.mean(mious)
+
+def predict_test_data(query_strategy, base_dir, scores_dir, emb_win_length, class_name):
+    if not os.path.exists(scores_dir):
+        os.makedirs(scores_dir)
+
+    #print(base_dir)
+    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
+    for soundscape_basename in soundscape_basenames:
+        timings, embeddings  = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
+        probas = query_strategy.predict_probas(embeddings)
+
+        taus = np.mean(timings, axis=1)
+
+        header = 'onset\toffset\t{}'.format(class_name)
+        row = '{}\t{}\t{}'
+        with open(os.path.join(scores_dir, '{}.tsv'.format(soundscape_basename)), 'w') as proba_f:
+            proba_f.write(header + '\n')
+            for idx in range(len(taus)):
+                # TODO: PSDS does not allow overlapping events, so we only use every 4th embedding
+                # this will probably affect the recall of most methods
+                # NOTE: I am correcting the onset and offset here based on the rectangular window, 
+                # so that the PSDS evaluation is correct.
+                if idx % 4 == 0:
+                    tau    = taus[idx]
+                    onset  = tau - (emb_win_length / 2)
+                    offset = tau + (emb_win_length / 2)
+                    p      = probas[idx]
+                    row_str = row.format(onset, offset, p)
+
+                    proba_f.write(row_str + '\n')
+    #print(taus[:5])
+
+
+def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
+    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
+
+    f1s   = []
+    mious = []
+    for soundscape_basename in soundscape_basenames:
+        ref_pos  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
+        pred_pos = query_strategy.predict_pos_events(base_dir, soundscape_basename, threshold=threshold)
+        if not len(pred_pos) == 0:
+            f1   = metrics.f1_score_from_events(ref_pos, pred_pos, min_iou=0.00000001)
+            miou = metrics.average_matched_iou(ref_pos, pred_pos, min_iou=0.00000001)
+            f1s.append(f1)
+            mious.append(miou)
+        else:
+            # TODO: not sure, strong penalization of no predictions
+            f1s.append(0)
+            mious.append(0)
+            
+    return np.mean(f1s), np.mean(mious)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--results_dir', help='The directory to save the results in', required=True, type=str)
     parser.add_argument('--name', required=True, type=str)
-    parser.add_argument('--train_data_dir', required=True, type=str)
+    #parser.add_argument('--train_data_dir', required=True, type=str)
+    parser.add_argument('--class_name', required=True, type=str)
     parser.add_argument('--emb_win_length', required=True, type=float)
     parser.add_argument('--strategy_name', required=True, type=str)
     args = parser.parse_args()
 
-    # implement so can be run over multiple runs and take average ...
-    train_annotation_dir = os.path.join(args.results_dir, args.name, 'train_annotations', args.strategy_name, '0')
-    train_annotation_paths = glob.glob(os.path.join(train_annotation_dir, "*.npy"))
+    emb_win_length = args.emb_win_length
+    emb_hop_length = emb_win_length / 4
+
+    emb_hop_length_str = '{:.2f}'.format(emb_hop_length)
+    emb_win_length_str = '{:.1f}'.format(emb_win_length)
+    class_name = args.class_name
+
+    train_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(class_name, emb_win_length_str, emb_hop_length_str)
+    
+    #timings, embeddings  = datasets.load_timings_and_embeddings(train_base_dir, "soundscape_0")
+    #print(train_base_dir)
+    #print(timings[:5])
+
+    idx_run = 0
+    train_annotation_dir   = os.path.join(args.results_dir, args.name, args.strategy_name, str(idx_run), 'train_annotations')
+
+    # load train annotations
+
+    train_annotation_paths = glob.glob(os.path.join(train_annotation_dir, "*.tsv"))
     #print(train_annotation_paths)
 
-    soundscape_basenames = [os.path.basename(fp).split('.')[0] for fp in train_annotation_paths]
-    #print(soundscape_basenames)
+    def get_iteration(fp):
+        return int(os.path.basename(fp).split('_')[1])
 
-    p_embss = []
-    n_embss = []
-    densities = []
-    for idx, soundscape_basename in enumerate(soundscape_basenames):
-        pos_ann = np.load(train_annotation_paths[idx])
-        p_embs, n_embs, _ = get_embeddings_3(pos_ann, args.train_data_dir, soundscape_basename, args.emb_win_length)
-        p_embs = np.array(p_embs)
-        n_embs = np.array(n_embs)
+    def get_soundscape_basename(fp):
+        return "_".join(os.path.basename(fp).split('_')[2:]).split('.')[0]
+    
+    evaluation_budgets = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.0] #, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 1.0]
+    n_soundscapes      = np.max([get_iteration(fp) for fp in train_annotation_paths]) + 1
+    n_iters            = [int(evaluation_budget * n_soundscapes) for evaluation_budget in evaluation_budgets]
 
-        p_embss.append(p_embs)
-        n_embss.append(n_embs)
-        print(soundscape_basename, p_embs.shape, n_embs.shape)
-        timings, embeddings = datasets.load_timings_and_embeddings(args.train_data_dir, soundscape_basename)
-        soundscape_length = qs.get_soundscape_length(args.train_data_dir, soundscape_basename)
-        neg_ann =  datasets.compute_neg_from_pos(pos_ann, soundscape_length)
-        #print("timings: ", np.mean(timings, axis=1))
-        #print("pos_ann: ", [('{:.2f}'.format(s), '{:.2f}'.format(e)) for (s, e) in pos_ann])
-        #print("neg_ann: ", [('{:.2f}'.format(s), '{:.2f}'.format(e)) for (s, e) in neg_ann])
+    for idx_budget, n_iter in enumerate(n_iters):
+        # 1. load the annotations until n_iter
+        budget_train_annotation_paths = [fp for fp in train_annotation_paths if get_iteration(fp) < n_iter]
+        soundscape_basenames          = [get_soundscape_basename(fp) for fp in budget_train_annotation_paths]
 
-        density = np.sum([(e-s) for (s, e) in pos_ann]) / soundscape_length
-        #print("density: ", density)
-        densities.append(density)
+        # 2. create model using these annotations
+        p_embss   = []
+        n_embss   = []
+        for idx, soundscape_basename in enumerate(soundscape_basenames):
 
-    p_embs = np.concatenate(p_embss)
-    n_embs = np.concatenate(n_embss)
+            #pos_ann = np.load(budget_train_annotation_paths[idx])
+            pos_ann = get_positive_annotations(budget_train_annotation_paths[idx])
+            p_embs, n_embs, _ = get_embeddings_3(pos_ann, train_base_dir, soundscape_basename, args.emb_win_length)
+            p_embs = np.array(p_embs)
+            n_embs = np.array(n_embs)
 
+            p_embss.append(p_embs)
+            n_embss.append(n_embs)
 
-    # train a classifier on these embeddings
+        p_embs = np.concatenate(p_embss)
+        n_embs = np.concatenate(n_embss)
+        
+        # NOTE: we only use the predictive model, never the queries, i.e, the query strategies do not matter here
+        query_strategy = models.AdaptiveQueryStrategy(train_base_dir, random_soundscape=False, fixed_queries=False, emb_cpd=False, normal_prototypes=True)
+        # update the model with the annotated data
+        query_strategy.update(p_embs, n_embs)
 
-    # evaluate the classifier on the test data
+        # 3. evaluate the model on the test data
+        test_base_dir = train_base_dir.replace('train', 'test')
+        f1_test_score, miou_test_score = evaluate_model_on_test_data(query_strategy, test_base_dir)
 
-    # save the results to disk
+        #f1_scores_test[idx_query_strategy, idx_run, idx_init, budget_count//n_eval]   = f1_test_score
+        #miou_scores_test[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = miou_test_score
 
-    print("density: ", np.mean(densities))
-    print("p_embs: ", p_embs.shape)
-    print("n_embs: ", n_embs.shape)
+        #print("-------------------------------------")
+        print("strategy {}, budget {}, f1 = {:.3f}, miou = {:.3f} (test)".format(args.strategy_name, evaluation_budgets[idx_budget], f1_test_score, miou_test_score))
+        
+    
+        # 4. predict the test data, and save to disk
+        scores_dir = os.path.join(args.results_dir, args.name, args.strategy_name, str(idx_run), 'test_scores', 'budget_{}'.format(evaluation_budgets[idx_budget]))
+        predict_test_data(query_strategy, test_base_dir, scores_dir, args.emb_win_length, args.class_name)
 
     return
 

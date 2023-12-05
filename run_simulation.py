@@ -32,10 +32,11 @@ def list_difference(l1, l2):
     return sorted(list(set(l1).difference(l2)))
 
 def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir, min_iou, noise_factor, normalize, iteration, emb_win_length, fp_noise, fn_noise):
+    # get the next soundscape to annotate
     next_soundscape_basename = query_strategy.next_soundscape_basename(soundscape_basenames)
 
-    # evaluate label-quality and get embeddings
-    f1_score, mean_iou_score, p_embeddings, n_embeddings, pos_pred = evaluate.evaluate_query_strategy(
+    # evaluate label-quality and get embeddings and annotations
+    f1_score, mean_iou_score, p_embeddings, n_embeddings, pos_pred = evaluate.evaluate_query_strategy( # TODO: this should probably be moved to the query strategy class
         base_dir            = base_dir,
         soundscape_basename = next_soundscape_basename,
         query_strategy      = query_strategy,
@@ -57,57 +58,7 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
     
     return f1_score, mean_iou_score, p_embeddings, n_embeddings, soundscape_basenames_remaining, soundscape_preds
 
-# TODO: include this in default loop
-def evaluate_annotation_process_on_test_data(query_strategy, base_dir, n_queries, noise_factor, fp_noise=0.0, fn_noise=0.0):
-    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
 
-    f1s   = []
-    mious = []
-
-    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=0.0, fn_noise=0.0)
-
-    for soundscape_basename in soundscape_basenames:
-        ref_pos  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
-
-        queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor)
-        pred_pos = oracle.pos_events_from_queries(queries, soundscape_basename)
-
-        if not len(pred_pos) == 0:
-            f1   = metrics.f1_score_from_events(ref_pos, pred_pos, min_iou=0.00000001)
-            miou = metrics.average_matched_iou(ref_pos, pred_pos, min_iou=0.00000001)
-            f1s.append(f1)
-            mious.append(miou)
-        else:
-            warnings.warn("No predictions, results will potentially be skewed ...")
-            print("query strategy, fixed = {}, CPD = {}".format(query_strategy.fixed_queries, query_strategy.emb_cpd))
-            print("pos_pred: ", pred_pos)
-            print("pos_ref: ", ref_pos)
-            print("queries: ", queries)
-            # TODO: not sure, strong penalization of no predictions
-            f1s.append(0)
-            mious.append(0)
-            
-    return np.mean(f1s), np.mean(mious)
-
-def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
-    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
-
-    f1s   = []
-    mious = []
-    for soundscape_basename in soundscape_basenames:
-        ref_pos  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
-        pred_pos = query_strategy.predict_pos_events(base_dir, soundscape_basename, threshold=threshold)
-        if not len(pred_pos) == 0:
-            f1   = metrics.f1_score_from_events(ref_pos, pred_pos, min_iou=0.00000001)
-            miou = metrics.average_matched_iou(ref_pos, pred_pos, min_iou=0.00000001)
-            f1s.append(f1)
-            mious.append(miou)
-        else:
-            # TODO: not sure, strong penalization of no predictions
-            f1s.append(0)
-            mious.append(0)
-            
-    return np.mean(f1s), np.mean(mious)
 
 
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
@@ -118,8 +69,8 @@ def main():
     parser.add_argument('--name', required=True, type=str)
     parser.add_argument('--n_soundscapes_budget', required=True, type=int)
     parser.add_argument('--n_queries_budget', required=True, type=int)
-    parser.add_argument('--train_data_dir', required=True, type=str)
-    parser.add_argument('--n_eval_freq', required=True, type=int)
+    parser.add_argument('--class_name', required=True, type=str)
+    #parser.add_argument('--n_eval_freq', required=True, type=int)
     parser.add_argument('--n_runs', required=True, type=int)
     parser.add_argument('--emb_win_length', required=True, type=float)
     parser.add_argument('--fp_noise', required=True, type=float)
@@ -128,7 +79,16 @@ def main():
     args = parser.parse_args()
 
     # The data directories
-    base_dir      = args.train_data_dir
+    emb_win_length = args.emb_win_length
+    emb_hop_length = emb_win_length / 4
+
+    emb_hop_length_str = '{:.2f}'.format(emb_hop_length)
+    emb_win_length_str = '{:.1f}'.format(emb_win_length)
+    class_name = args.class_name
+
+    base_dir =     train_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(class_name, emb_win_length_str, emb_hop_length_str)
+    
+    #base_dir      = args.train_data_dir
     test_base_dir = base_dir.replace('train', 'test')
     print("base_dir: ", base_dir)
     print("test_base_dir: ", test_base_dir)
@@ -136,7 +96,7 @@ def main():
     n_soundscapes        = args.n_soundscapes_budget
     n_soundscapes_budget = args.n_soundscapes_budget
     n_queries            = args.n_queries_budget
-    n_eval               = args.n_eval_freq
+    #n_eval               = args.n_eval_freq
     n_runs               = args.n_runs
 
     # Gaussian initialization of prototypes
@@ -156,10 +116,10 @@ def main():
     test_soundscape_basename = 'soundscape_0'
 
 
-    f1_scores_test     = np.zeros((4, n_runs, 1, n_soundscapes_budget // n_eval))
-    miou_scores_test   = np.zeros((4, n_runs, 1, n_soundscapes_budget // n_eval))
-    f1_scores_train    = np.zeros((4, n_runs, 1, n_soundscapes_budget // n_eval))
-    miou_scores_train  = np.zeros((4, n_runs, 1, n_soundscapes_budget // n_eval))
+    f1_scores_test     = np.zeros((4, n_runs, 1, n_soundscapes_budget))
+    miou_scores_test   = np.zeros((4, n_runs, 1, n_soundscapes_budget))
+    f1_scores_train    = np.zeros((4, n_runs, 1, n_soundscapes_budget))
+    miou_scores_train  = np.zeros((4, n_runs, 1, n_soundscapes_budget))
 
 
     f1_scores_train_online   = np.zeros((4, n_runs, 1, n_soundscapes_budget))
@@ -196,44 +156,24 @@ def main():
         print("####################################################")
 
         while budget_count < n_soundscapes_budget:
-            print("----------------------------------------")
+            print("----------------- {} -----------------------".format(budget_count))
             #print("iteration {}".format(budget_count))
             for idx_query_strategy in indices_query_strategies: 
                 query_strategy = query_strategies[idx_query_strategy]
 
-                if budget_count % n_eval == 0:
-                    f1_test_score, miou_test_score   = evaluate_model_on_test_data(query_strategy, test_base_dir)
-                    f1_train_score, miou_train_score = evaluate_annotation_process_on_test_data(query_strategy, test_base_dir, n_queries, noise_factor, args.fp_noise, args.fn_noise)
+                # if False: #budget_count % n_eval == 0:
+                #     f1_test_score, miou_test_score   = evaluate_model_on_test_data(query_strategy, test_base_dir)
+                #     f1_train_score, miou_train_score = evaluate_annotation_process_on_test_data(query_strategy, test_base_dir, n_queries, noise_factor, args.fp_noise, args.fn_noise)
 
-                    f1_scores_train[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = f1_train_score
-                    miou_scores_train[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = miou_train_score
+                #     f1_scores_train[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = f1_train_score
+                #     miou_scores_train[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = miou_train_score
 
-                    f1_scores_test[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = f1_test_score
-                    miou_scores_test[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = miou_test_score
+                #     f1_scores_test[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = f1_test_score
+                #     miou_scores_test[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = miou_test_score
 
-                    #print("-------------------------------------")
-                    print("strategy {}, iteration {}, f1 = {:.3f}, miou = {:.3f} (train)".format(strategy_names[idx_query_strategy], budget_count, f1_train_score, miou_train_score))
-                    print("strategy {}, iteration {}, f1 = {:.3f}, miou = {:.3f} (test)".format(strategy_names[idx_query_strategy], budget_count, f1_test_score, miou_test_score))
-
-    #                 # save prediction probas on test file to disk
-    #                 figure_dir_path = os.path.join('figures/debugging/n_queries_{}/strategy_{}/'.format(n_queries, idx_query_strategy))
-    #                 if not os.path.exists(figure_dir_path):
-    #                     os.makedirs(figure_dir_path)
-
-    #                 visualize.visualize_query_strategy(
-    #                     query_strategy,
-    #                     "spent budget = {}, strategy = {}".format(budget_count, strategy_names[idx_query_strategy]),
-    #                     test_soundscape_basename,
-    #                     test_base_dir,
-    #                     n_queries,
-    #                     vis_probs     = True,
-    #                     vis_queries   = True,
-    #                     vis_label     = False,
-    #                     vis_threshold = True,
-    #                     vis_cpd       = True,
-    #                     vis_peaks     = True,
-    #                     savefile=os.path.join(figure_dir_path, "iteration_{}.png".format(budget_count)),
-    #                 )
+                #     #print("-------------------------------------")
+                #     print("strategy {}, iteration {}, f1 = {:.3f}, miou = {:.3f} (train)".format(strategy_names[idx_query_strategy], budget_count, f1_train_score, miou_train_score))
+                #     print("strategy {}, iteration {}, f1 = {:.3f}, miou = {:.3f} (test)".format(strategy_names[idx_query_strategy], budget_count, f1_test_score, miou_test_score))
 
                 bns = bnss[idx_query_strategy]
 
@@ -252,15 +192,26 @@ def main():
                 )
 
                 # retreive and store annotations to disk
+                # results/<experiment_name>/<method_name>/<run>/train_annotations/<iteration_filename>.tsv  # the training annotations
+
                 annotated_soundscape_basename, annotations = soundscape_preds
                 query_strategy_name = strategy_names[idx_query_strategy]
-                train_annotation_dir = os.path.join(args.results_dir, args.name, 'train_annotations', query_strategy_name, str(idx_run))
+                train_annotation_dir = os.path.join(args.results_dir, args.name, query_strategy_name, str(idx_run), 'train_annotations')
                 if not os.path.exists(train_annotation_dir):
                     os.makedirs(train_annotation_dir)
-                np.save(os.path.join(train_annotation_dir, annotated_soundscape_basename) + '.npy', np.array(annotations))
 
-                f1_scores_train_online[idx_query_strategy, idx_run, idx_init, budget_count] = f1_train
+                # save annotations in .tsv format
+                with open(os.path.join(train_annotation_dir, "iter_{}_".format(budget_count) + annotated_soundscape_basename + '.tsv'), 'w') as f:
+                    f.write('onset\toffset\tevent_label\n')
+                    for (onset, offset) in annotations:
+                        f.write('{}\t{}\t{}\n'.format(onset, offset, args.class_name))
+
+                # save annotations in .npy format
+                #np.save(os.path.join(train_annotation_dir, "iter_{}_".format(budget_count) + annotated_soundscape_basename + '.npy'), np.array(annotations))
+
+                f1_scores_train_online[idx_query_strategy, idx_run, idx_init, budget_count]   = f1_train
                 miou_scores_train_online[idx_query_strategy, idx_run, idx_init, budget_count] = miou_train
+
                 #print("simulation time: ", time.time() - t1)
                 bnss[idx_query_strategy] = bns
                 #print("strategy {}: ".format(idx_query_strategy), bns)
@@ -272,10 +223,12 @@ def main():
 
     print("done! saving results in {} ...".format(os.path.join(args.results_dir, args.name)))
     # save evaluation
-    np.save(os.path.join(args.results_dir, args.name, "f1_scores_train.npy"), f1_scores_train)
-    np.save(os.path.join(args.results_dir, args.name, "miou_scores_train.npy"), miou_scores_train)
-    np.save(os.path.join(args.results_dir, args.name, "f1_scores_test.npy"), f1_scores_test)
-    np.save(os.path.join(args.results_dir, args.name, "miou_scores_test.npy"), miou_scores_test)
+    # np.save(os.path.join(args.results_dir, args.name, "f1_scores_train.npy"), f1_scores_train)
+    # np.save(os.path.join(args.results_dir, args.name, "miou_scores_train.npy"), miou_scores_train)
+    # np.save(os.path.join(args.results_dir, args.name, "f1_scores_test.npy"), f1_scores_test)
+    # np.save(os.path.join(args.results_dir, args.name, "miou_scores_test.npy"), miou_scores_test)
+
+    # shape (n_query_strategies, n_runs, 1, n_soundscapes_budget)
     np.save(os.path.join(args.results_dir, args.name, "f1_scores_train_online.npy"), f1_scores_train_online)
     np.save(os.path.join(args.results_dir, args.name, "miou_scores_train_online.npy"), miou_scores_train_online)
 
