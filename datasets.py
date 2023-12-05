@@ -109,7 +109,7 @@ def normalize_embeddings(embeddings, base_dir):
 
     return embeddings
 
-def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=False):
+def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=True):
     file_path = os.path.join(base_dir, '{}.birdnet.embeddings.txt'.format(soundscape_basename))
     timings = []
     embeddings = []
