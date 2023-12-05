@@ -1,8 +1,8 @@
-dataset_name=me_0.8s_0.25s_large_final
+fg_label=$1
+dataset_name=${fg_label}_1.0_0.25s
 bg_label=all
-fg_label=me
 snr=0
-n_soundscapes=100
+n_soundscapes=200
 data_dir=/mnt/storage_1/datasets/bioacoustic_sed
 
 eval "$(conda shell.bash hook)"
