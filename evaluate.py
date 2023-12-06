@@ -206,17 +206,47 @@ def predict_test_data(query_strategy, base_dir, scores_dir, emb_win_length, clas
     if not os.path.exists(scores_dir):
         os.makedirs(scores_dir)
 
+    if not os.path.exists(os.path.join(scores_dir, 'event_based')):
+        os.makedirs(os.path.join(scores_dir, 'event_based'))
+    
+    if not os.path.exists(os.path.join(scores_dir, 'segment_based')):
+        os.makedirs(os.path.join(scores_dir, 'segment_based'))
+
     #print(base_dir)
     soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
     for soundscape_basename in soundscape_basenames:
         timings, embeddings  = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
         probas = query_strategy.predict_probas(embeddings)
 
-        taus = np.mean(timings, axis=1)
+        # Event-based predictions for collar evaluation
+        pos_indices = (probas >= 0.5)
+        avg_timings     = timings.mean(axis=1)
+        pos_avg_timings = avg_timings[pos_indices]
+        hop_length      = avg_timings[1]-avg_timings[0]
 
+        pos_events = []
+        idx_timing = 0
+        # TODO: maybe improve this a bit? fairly naive as it is
+        while idx_timing < len(pos_avg_timings):
+            s = pos_avg_timings[idx_timing]
+            # keep incrementing until we are at the end, or there is a gap in the predictions
+            while idx_timing < len(pos_avg_timings)-1 and (pos_avg_timings[idx_timing+1] - pos_avg_timings[idx_timing]) <= hop_length:
+                idx_timing += 1
+            e = pos_avg_timings[idx_timing]
+            pos_events.append((s, e))
+            idx_timing += 1
+        
+        row = '{}\t{}\t{}'
+        with open(os.path.join(scores_dir, 'event_based', '{}.txt'.format(soundscape_basename)), 'w') as proba_f:
+            for (s, e) in pos_events:
+                row_str = row.format(s, e, class_name)
+                proba_f.write(row_str + '\n')
+
+        # Segment-based predictions (without overlap) for PSDS evaluation
+        taus = np.mean(timings, axis=1)
         header = 'onset\toffset\t{}'.format(class_name)
         row = '{}\t{}\t{}'
-        with open(os.path.join(scores_dir, '{}.tsv'.format(soundscape_basename)), 'w') as proba_f:
+        with open(os.path.join(scores_dir, 'segment_based', '{}.tsv'.format(soundscape_basename)), 'w') as proba_f:
             proba_f.write(header + '\n')
             for idx in range(len(taus)):
                 # TODO: PSDS does not allow overlapping events, so we only use every 4th embedding
@@ -231,7 +261,6 @@ def predict_test_data(query_strategy, base_dir, scores_dir, emb_win_length, clas
                     row_str = row.format(onset, offset, p)
 
                     proba_f.write(row_str + '\n')
-    #print(taus[:5])
 
 
 def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
@@ -256,8 +285,8 @@ def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--results_dir', help='The directory to save the results in', required=True, type=str)
-    parser.add_argument('--name', required=True, type=str)
+    parser.add_argument('--sim_dir', help='The directory to save the results in', required=True, type=str)
+    #parser.add_argument('--name', required=True, type=str)
     #parser.add_argument('--train_data_dir', required=True, type=str)
     parser.add_argument('--class_name', required=True, type=str)
     parser.add_argument('--emb_win_length', required=True, type=float)
@@ -278,7 +307,7 @@ def main():
     #print(timings[:5])
 
     idx_run = 0
-    train_annotation_dir   = os.path.join(args.results_dir, args.name, args.strategy_name, str(idx_run), 'train_annotations')
+    train_annotation_dir   = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'train_annotations')
 
     # load train annotations
 
@@ -334,7 +363,7 @@ def main():
         
     
         # 4. predict the test data, and save to disk
-        scores_dir = os.path.join(args.results_dir, args.name, args.strategy_name, str(idx_run), 'test_scores', 'budget_{}'.format(evaluation_budgets[idx_budget]))
+        scores_dir = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'test_scores', 'budget_{}'.format(evaluation_budgets[idx_budget]))
         predict_test_data(query_strategy, test_base_dir, scores_dir, args.emb_win_length, args.class_name)
 
     return
