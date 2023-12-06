@@ -16,8 +16,8 @@ import change_point_detection as cpd
 
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
-def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, vis_embs_label=False, savefile=None, noise_factor=0, normalize=True, emb_win_length=1.0):
-    oracle = oracles.WeakLabelOracle(base_dir)
+def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, vis_embs_label=False, savefile=None, noise_factor=0, normalize=True, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0):
+    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise)
 
     #print("###########################################")
     #print(query_strategy_name)
@@ -97,6 +97,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
         ax[1].plot(ts_probas, pred_probas, label='probas', color=colors[1])
     if vis_threshold:
         ax[1].hlines([0.5], [0], [soundscape_length], color='red', linestyle='dashed')
+        ax[1].hlines([1.0], [0], [soundscape_length], color='green', linestyle='dashed')
     ax[1].set_xlim(0, soundscape_length) #ts_probas[-1])
     ax[1].set_ylim(0, 1.2)
     ax[1].set_xlabel('time [s]')
