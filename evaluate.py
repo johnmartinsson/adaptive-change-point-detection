@@ -15,10 +15,9 @@ import argparse
 def get_positive_annotations(fp):
     with open(fp, 'r') as f:
         lines = f.readlines()
-        ls    = [l.split('\t') for l in lines[1:]]
-        anns = [(float(s), float(e)) for (s, e, _) in ls]
+        lines    = [line.split('\t') for line in lines[1:]]
+        anns = [(float(s), float(e)) for (s, e, _) in lines]
     return anns
-
 
 def valid_queries(queries, base_dir, soundscape_basename, n_queries):
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
