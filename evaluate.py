@@ -286,11 +286,10 @@ def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sim_dir', help='The directory to save the results in', required=True, type=str)
-    #parser.add_argument('--name', required=True, type=str)
-    #parser.add_argument('--train_data_dir', required=True, type=str)
     parser.add_argument('--class_name', required=True, type=str)
     parser.add_argument('--emb_win_length', required=True, type=float)
     parser.add_argument('--strategy_name', required=True, type=str)
+    parser.add_argument('--n_runs', required=True, type=int)
     args = parser.parse_args()
 
     emb_win_length = args.emb_win_length
@@ -301,72 +300,60 @@ def main():
     class_name = args.class_name
 
     train_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(class_name, emb_win_length_str, emb_hop_length_str)
-    
-    #timings, embeddings  = datasets.load_timings_and_embeddings(train_base_dir, "soundscape_0")
-    #print(train_base_dir)
-    #print(timings[:5])
 
-    idx_run = 0
-    train_annotation_dir   = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'train_annotations')
+    for idx_run in range(args.n_runs):
+        print("run = ", idx_run)
+        train_annotation_dir   = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'train_annotations')
 
-    # load train annotations
+        # load train annotations
+        train_annotation_paths = glob.glob(os.path.join(train_annotation_dir, "*.tsv"))
 
-    train_annotation_paths = glob.glob(os.path.join(train_annotation_dir, "*.tsv"))
-    #print(train_annotation_paths)
+        def get_iteration(fp):
+            return int(os.path.basename(fp).split('_')[1])
 
-    def get_iteration(fp):
-        return int(os.path.basename(fp).split('_')[1])
-
-    def get_soundscape_basename(fp):
-        return "_".join(os.path.basename(fp).split('_')[2:]).split('.')[0]
-    
-    evaluation_budgets = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.0] #, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 1.0]
-    n_soundscapes      = np.max([get_iteration(fp) for fp in train_annotation_paths]) + 1
-    n_iters            = [int(evaluation_budget * n_soundscapes) for evaluation_budget in evaluation_budgets]
-
-    for idx_budget, n_iter in enumerate(n_iters):
-        # 1. load the annotations until n_iter
-        budget_train_annotation_paths = [fp for fp in train_annotation_paths if get_iteration(fp) < n_iter]
-        soundscape_basenames          = [get_soundscape_basename(fp) for fp in budget_train_annotation_paths]
-
-        # 2. create model using these annotations
-        p_embss   = []
-        n_embss   = []
-        for idx, soundscape_basename in enumerate(soundscape_basenames):
-
-            #pos_ann = np.load(budget_train_annotation_paths[idx])
-            pos_ann = get_positive_annotations(budget_train_annotation_paths[idx])
-            p_embs, n_embs, _ = get_embeddings_3(pos_ann, train_base_dir, soundscape_basename, args.emb_win_length)
-            p_embs = np.array(p_embs)
-            n_embs = np.array(n_embs)
-
-            p_embss.append(p_embs)
-            n_embss.append(n_embs)
-
-        p_embs = np.concatenate(p_embss)
-        n_embs = np.concatenate(n_embss)
+        def get_soundscape_basename(fp):
+            return "_".join(os.path.basename(fp).split('_')[2:]).split('.')[0]
         
-        # NOTE: we only use the predictive model, never the queries, i.e, the query strategies do not matter here
-        query_strategy = models.AdaptiveQueryStrategy(train_base_dir, random_soundscape=False, fixed_queries=False, emb_cpd=False, normal_prototypes=True)
-        # update the model with the annotated data
-        query_strategy.update(p_embs, n_embs)
+        evaluation_budgets = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.0]
+        n_soundscapes      = np.max([get_iteration(fp) for fp in train_annotation_paths]) + 1
+        n_iters            = [int(evaluation_budget * n_soundscapes) for evaluation_budget in evaluation_budgets]
 
-        # 3. evaluate the model on the test data
-        test_base_dir = train_base_dir.replace('train', 'test')
-        f1_test_score, miou_test_score = evaluate_model_on_test_data(query_strategy, test_base_dir)
+        for idx_budget, n_iter in enumerate(n_iters):
+            # 1. load the annotations until n_iter
+            budget_train_annotation_paths = [fp for fp in train_annotation_paths if get_iteration(fp) < n_iter]
+            soundscape_basenames          = [get_soundscape_basename(fp) for fp in budget_train_annotation_paths]
 
-        #f1_scores_test[idx_query_strategy, idx_run, idx_init, budget_count//n_eval]   = f1_test_score
-        #miou_scores_test[idx_query_strategy, idx_run, idx_init, budget_count//n_eval] = miou_test_score
+            # 2. create model using these annotations
+            p_embss   = []
+            n_embss   = []
+            for idx, soundscape_basename in enumerate(soundscape_basenames):
 
-        #print("-------------------------------------")
-        print("strategy {}, budget {}, f1 = {:.3f}, miou = {:.3f} (test)".format(args.strategy_name, evaluation_budgets[idx_budget], f1_test_score, miou_test_score))
+                #pos_ann = np.load(budget_train_annotation_paths[idx])
+                pos_ann = get_positive_annotations(budget_train_annotation_paths[idx])
+                p_embs, n_embs, _ = get_embeddings_3(pos_ann, train_base_dir, soundscape_basename, args.emb_win_length)
+                p_embs = np.array(p_embs)
+                n_embs = np.array(n_embs)
+
+                p_embss.append(p_embs)
+                n_embss.append(n_embs)
+
+            p_embs = np.concatenate(p_embss)
+            n_embs = np.concatenate(n_embss)
+            
+            # NOTE: we only use the predictive model, never the queries, i.e, the query strategies do not matter here
+            query_strategy = models.AdaptiveQueryStrategy(train_base_dir, random_soundscape=False, fixed_queries=False, emb_cpd=False, normal_prototypes=True)
+            # update the model with the annotated data
+            query_strategy.update(p_embs, n_embs)
+
+            # 3. evaluate the model on the test data
+            test_base_dir = train_base_dir.replace('train', 'test')
+            f1_test_score, miou_test_score = evaluate_model_on_test_data(query_strategy, test_base_dir)
+
+            print("strategy {}, budget {}, f1 = {:.3f}, miou = {:.3f} (test)".format(args.strategy_name, evaluation_budgets[idx_budget], f1_test_score, miou_test_score))            
         
-    
-        # 4. predict the test data, and save to disk
-        scores_dir = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'test_scores', 'budget_{}'.format(evaluation_budgets[idx_budget]))
-        predict_test_data(query_strategy, test_base_dir, scores_dir, args.emb_win_length, args.class_name)
-
-    return
+            # 4. predict the test data, and save to disk
+            scores_dir = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'test_scores', 'budget_{}'.format(evaluation_budgets[idx_budget]))
+            predict_test_data(query_strategy, test_base_dir, scores_dir, args.emb_win_length, args.class_name)
 
 if __name__ == '__main__':
     main()
