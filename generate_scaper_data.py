@@ -1,8 +1,6 @@
 import os
 import scaper
 import numpy as np
-import soundfile as sf
-import glob
 import argparse
 import metrics
 
