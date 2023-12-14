@@ -102,7 +102,6 @@ def main():
 
     for idx_run in range(n_runs):
         # initalize methods
-
         opt_query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=False, opt_queries=True,    normal_prototypes=normal_prototypes)
         adp_query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=False, emb_cpd=False, normal_prototypes=normal_prototypes)
         cpd_query_strategy = models.AdaptiveQueryStrategy(base_dir, random_soundscape=True,  fixed_queries=True,  emb_cpd=True,  normal_prototypes=normal_prototypes)
