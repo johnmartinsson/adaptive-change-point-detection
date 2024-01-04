@@ -1,7 +1,7 @@
 import os
 import librosa
 import numpy as np
-from scipy.signal import find_peaks, peak_widths
+from scipy.signal import find_peaks
 
 import matplotlib.pyplot as plt
 
@@ -26,7 +26,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
 
     timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
-    pred_probas = query_strategy.predict_probas(embeddings, noise_factor=noise_factor)
+    pred_probas = query_strategy.predict_proba(embeddings, noise_factor=noise_factor)
     if query_strategy.fixed_queries or query_strategy.emb_cpd or query_strategy.opt_queries:
         pred_queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries)
     else:
