@@ -3,12 +3,10 @@ import os
 import glob
 import pandas as pd
 import numpy as np
-import librosa
 import soundfile as sf
 import argparse
 
 import stats_utils
-import sed_utils
 
 def write_foreground_events_to_dir(wave_path, class_name, annotations, dir_path):
     wave, sample_rate = sf.read(wave_path)
