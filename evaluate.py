@@ -2,6 +2,11 @@ import os
 import numpy as np
 import glob
 
+import sklearn.svm
+import sklearn.ensemble
+import sklearn.linear_model
+import sklearn.neighbors
+
 import warnings
 
 import metrics
@@ -201,7 +206,7 @@ def evaluate_annotation_process_on_test_data(query_strategy, base_dir, n_queries
             
     return np.mean(f1s), np.mean(mious)
 
-def predict_test_data(query_strategy, base_dir, scores_dir, emb_win_length, class_name):
+def predict_test_data(model, base_dir, scores_dir, emb_win_length, class_name):
     if not os.path.exists(scores_dir):
         os.makedirs(scores_dir)
 
@@ -215,10 +220,14 @@ def predict_test_data(query_strategy, base_dir, scores_dir, emb_win_length, clas
     soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
     for soundscape_basename in soundscape_basenames:
         timings, embeddings  = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
-        probas = query_strategy.predict_probas(embeddings)
+        probas = model.predict_proba(embeddings)
+
+        # TODO: this is a hack, but it works for now
+        if len(probas.shape) == 2:
+            probas = probas[:,1]
 
         # Event-based predictions for collar evaluation
-        pos_indices = (probas >= 0.5)
+        pos_indices     = (probas >= 0.5)
         avg_timings     = timings.mean(axis=1)
         pos_avg_timings = avg_timings[pos_indices]
         hop_length      = avg_timings[1]-avg_timings[0]
@@ -287,7 +296,8 @@ def main():
     parser.add_argument('--sim_dir', help='The directory to save the results in', required=True, type=str)
     parser.add_argument('--class_name', required=True, type=str)
     parser.add_argument('--emb_win_length', required=True, type=float)
-    parser.add_argument('--strategy_name', required=True, type=str)
+    parser.add_argument('--strategy_name', required=True, type=str, help='The name of the annotation strategy to evaluate')
+    parser.add_argument('--model_name', required=True, type=str, help='The name of the model to evaluate')
     parser.add_argument('--n_runs', required=True, type=int)
     args = parser.parse_args()
 
@@ -301,7 +311,6 @@ def main():
     train_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(class_name, emb_win_length_str, emb_hop_length_str)
 
     for idx_run in range(args.n_runs):
-        print("run = ", idx_run)
         train_annotation_dir   = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'train_annotations')
 
         # load train annotations
@@ -318,6 +327,7 @@ def main():
         n_iters            = [int(evaluation_budget * n_soundscapes) for evaluation_budget in evaluation_budgets]
 
         for idx_budget, n_iter in enumerate(n_iters):
+            print("strategy = {}, run = {}, model_name = {}, budget = {}".format(args.strategy_name, idx_run, args.model_name, evaluation_budgets[idx_budget]))
             # 1. load the annotations until n_iter
             budget_train_annotation_paths = [fp for fp in train_annotation_paths if get_iteration(fp) < n_iter]
             soundscape_basenames          = [get_soundscape_basename(fp) for fp in budget_train_annotation_paths]
@@ -336,23 +346,51 @@ def main():
                 p_embss.append(p_embs)
                 n_embss.append(n_embs)
 
+            # positive and negative embeddings
             p_embs = np.concatenate(p_embss)
             n_embs = np.concatenate(n_embss)
             
-            # NOTE: we only use the predictive model, never the queries, i.e, the query strategies do not matter here
-            query_strategy = models.AdaptiveQueryStrategy(train_base_dir, random_soundscape=False, fixed_queries=False, emb_cpd=False, normal_prototypes=True)
-            # update the model with the annotated data
-            query_strategy.update(p_embs, n_embs)
+            if args.model_name == 'prototypical':
+                # NOTE: we only use the predictive model, never the queries, i.e, the query strategies do not matter here
+                model = models.AdaptiveQueryStrategy(train_base_dir, random_soundscape=False, fixed_queries=False, emb_cpd=False, normal_prototypes=True)
+                # update the model with the annotated data
+                model.update(p_embs, n_embs)
+            elif args.model_name == 'linear_svm':
+                model = sklearn.svm.SVC(kernel='linear', probability=True) #, verbose=True, max_iter=5000)
+            elif args.model_name == 'rbf_svm':
+                model = sklearn.svm.SVC(kernel='rbf', probability=True) #, verbose=True, max_iter=5000)
+            elif args.model_name == 'random_forest':
+                model = sklearn.ensemble.RandomForestClassifier(n_estimators=100)
+            elif args.model_name == 'logistic_regression':
+                model = sklearn.linear_model.LogisticRegression(max_iter=5000)
+            elif args.model_name == 'knn':
+                model = sklearn.neighbors.KNeighborsClassifier(n_neighbors=5, weights='distance')
+            else:
+                raise ValueError("Unknown model name: {}".format(args.model_name))
+            
+            X = np.concatenate([p_embs, n_embs])
+            y = np.concatenate([np.ones(len(p_embs)), np.zeros(len(n_embs))])
+            if not args.model_name == 'prototypical':
+                print("fitting model ...")
+                print("X.shape: ", X.shape)
+                print("y.shape: ", y.shape)
+                # TODO: this is a hack to make it run faster
+                if 'svm' in args.model_name:
+                    X = X[:10000]
+                    y = y[:10000]
+                model.fit(X, y)
 
             # 3. evaluate the model on the test data
             test_base_dir = train_base_dir.replace('train', 'test')
-            f1_test_score, miou_test_score = evaluate_model_on_test_data(query_strategy, test_base_dir)
 
-            print("strategy {}, budget {}, f1 = {:.3f}, miou = {:.3f} (test)".format(args.strategy_name, evaluation_budgets[idx_budget], f1_test_score, miou_test_score))            
+            # TODO: this is not really used, except as verbose output
+            #f1_test_score, miou_test_score = evaluate_model_on_test_data(query_strategy, test_base_dir)
+            #print("strategy {}, budget {}, f1 = {:.3f}, miou = {:.3f} (test)".format(args.strategy_name, evaluation_budgets[idx_budget], f1_test_score, miou_test_score))            
         
             # 4. predict the test data, and save to disk
-            scores_dir = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'test_scores', 'budget_{}'.format(evaluation_budgets[idx_budget]))
-            predict_test_data(query_strategy, test_base_dir, scores_dir, args.emb_win_length, args.class_name)
+            scores_dir = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'test_scores', args.model_name, 'budget_{}'.format(evaluation_budgets[idx_budget]))
+            print("predicting test data ...")
+            predict_test_data(model, test_base_dir, scores_dir, args.emb_win_length, args.class_name)
 
 if __name__ == '__main__':
     main()
