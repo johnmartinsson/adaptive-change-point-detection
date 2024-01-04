@@ -1,6 +1,7 @@
 import os
 import glob
 import numpy as np
+import query_strategies as qs
 
 def load_pos_ref_aux(base_dir, soundscape_basename):
     ref_path = os.path.join(base_dir, "{}.txt".format(soundscape_basename))
@@ -120,7 +121,11 @@ def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=102
         embeddings = normalize_embeddings(embeddings, base_dir)
 
     end_times = np.array([e for (_, e) in timings])
-    indices = end_times <= 30.0
+
+    # TODO: changed to work with other than 30s soundscapes
+    soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
+    indices = end_times <= soundscape_length #30.0
+
     timings = np.array(timings)[indices]
     embeddings = embeddings[indices]
 
