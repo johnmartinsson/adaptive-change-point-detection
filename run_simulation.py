@@ -1,5 +1,6 @@
 import os
 import sys
+
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
@@ -11,6 +12,8 @@ import models
 import evaluate
 
 import argparse
+
+
 
 def list_difference(l1, l2):
     return sorted(list(set(l1).difference(l2)))
@@ -64,7 +67,7 @@ def main():
     emb_win_length_str = '{:.1f}'.format(emb_win_length)
     class_name = args.class_name
 
-    base_dir =     train_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(class_name, emb_win_length_str, emb_hop_length_str)
+    base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(class_name, emb_win_length_str, emb_hop_length_str)
     
     test_base_dir = base_dir.replace('train', 'test')
     print("base_dir: ", base_dir)
