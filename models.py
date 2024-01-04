@@ -10,8 +10,7 @@ import warnings
 
 import change_point_detection as cpd
 
-from scipy.signal import find_peaks, peak_widths
-from scipy.interpolate import interp1d
+from scipy.signal import find_peaks
 
 def euclidean_distance(x1, x2):
     return np.sqrt(np.sum(np.power(x1-x2, 2)))
@@ -100,11 +99,11 @@ class AdaptiveQueryStrategy():
         """
         Hard classification of the input.
         """
-        probas = self.predict_probas(query_embeddings, temp=temp)
+        probas = self.predict_proba(query_embeddings, temp=temp)
         pred = probas >= threshold
         return pred.astype(np.int32)
 
-    def predict_probas(self, query_embeddings, temp=1, noise_factor=0):
+    def predict_proba(self, query_embeddings, temp=1, noise_factor=0):
         """
         Predict pseudo-probabilities of the input belonging to each class.
         """
@@ -132,7 +131,7 @@ class AdaptiveQueryStrategy():
     def predict_pos_events(self, base_dir, soundscape_basename, threshold=0.5):
         query_timings, query_embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
 
-        probas      = self.predict_probas(query_embeddings)
+        probas      = self.predict_proba(query_embeddings)
         pos_indices = (probas >= threshold)
 
         avg_timings = query_timings.mean(axis=1)
@@ -173,7 +172,7 @@ class AdaptiveQueryStrategy():
             return fix_queries
         else:
             timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024, normalize=normalize)
-            probas = self.predict_probas(embeddings, noise_factor=noise_factor)
+            probas = self.predict_proba(embeddings, noise_factor=noise_factor)
 
             proba_dir = os.path.join(base_dir, "probas")
             if not os.path.exists(proba_dir):
@@ -228,7 +227,7 @@ class AdaptiveQueryStrategy():
         # load the embeddings for the soundscape
         _, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=1024)
 
-        probas = self.predict_probas(embeddings)
+        probas = self.predict_proba(embeddings)
         entropies = [binary_entropy(p) for p in probas]
         return np.mean(entropies)
 
@@ -254,7 +253,7 @@ class BaseActiveLearner():
         """
         Hard classification of the input.
         """
-        return torch.argmax(self.predict_proba(x))
+        return np.argmax(self.predict_proba(x))
 
     def predict_proba(self, x):
         """
