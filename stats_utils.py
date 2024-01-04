@@ -1,6 +1,4 @@
-import numpy as np
 import pandas as pd
-import sed_utils
 
 def get_positive_annotations(csv_path, n_shots, class_name, expand=0.0):
     ann_df = pd.read_csv(csv_path)
@@ -25,14 +23,14 @@ def get_gap_annotations(csv_path, n_shots, class_name):
  
     return list(zip(_start_times, _end_times))
 
-def get_query_annotations(csv_path, n_shots, class_name):
-    pos_annotations = get_positive_annotations(csv_path, n_shots, class_name)
-    #start_time = pos_annotations[-1][1]
-    start_time = 0
-    wav_path = csv_path.replace('.csv', '.wav')
-    wave, sample_rate = sed_utils.load_wave(wav_path)
-    end_time = len(wave) / sample_rate
-    return [(start_time, end_time)]
+# def get_query_annotations(csv_path, n_shots, class_name):
+#     pos_annotations = get_positive_annotations(csv_path, n_shots, class_name)
+#     #start_time = pos_annotations[-1][1]
+#     start_time = 0
+#     wav_path = csv_path.replace('.csv', '.wav')
+#     wave, sample_rate = sed_utils.load_wave(wav_path)
+#     end_time = len(wave) / sample_rate
+#     return [(start_time, end_time)]
 
 def get_event_lengths(n_shots, csv_path, class_name):
     ann_df = pd.read_csv(csv_path)
