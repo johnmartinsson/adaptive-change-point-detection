@@ -1,3 +1,4 @@
+backup_results
 figures
 results
 results_1
@@ -7,6 +8,7 @@ old_results
 results.zip
 tmp.txt
 ./results_test
+old_results.zip
 
 *.tsv
 *.npy
