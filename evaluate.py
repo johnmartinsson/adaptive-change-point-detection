@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import glob
+import sys
 
 import sklearn.svm
 import sklearn.ensemble
@@ -14,6 +15,7 @@ import oracles
 import datasets
 import query_strategies as qs
 import models
+import evaluation_models
 
 import argparse
 
@@ -46,8 +48,8 @@ def valid_queries(queries, base_dir, soundscape_basename, n_queries):
         tot += L
 
     # TODO: hacky add of 0.5 and check less than because of embeddings in BirdNET...
-    assert tot <= soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
-    #assert tot <= soundscape_length + 0.6, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
+    #assert tot <= soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
+    assert tot <= soundscape_length + 0.001, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
 
 def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0, normalize=False, iteration=0, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0):
     #query_strategy.base_dir = base_dir
@@ -68,10 +70,10 @@ def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_i
     if len(pos_pred) == 0:
         f1_score = 0
         mean_iou_score = 0
-        warnings.warn('Unlikely behaviour for {}, no positive labels from oracle, may skew results ...'.format(soundscape_basename))
-        print("pos_pred: ", pos_pred)
-        print("pos_ref: ", pos_ref)
-        print("queries: ", queries)
+        #warnings.warn('Unlikely behaviour for {}, no positive labels from oracle, may skew results ...'.format(soundscape_basename))
+        #print("pos_pred: ", pos_pred)
+        #print("pos_ref: ", pos_ref)
+        #print("queries: ", queries)
     else:
         f1_score       = metrics.f1_score_from_events(pos_ref, pos_pred, min_iou=min_iou)
         mean_iou_score = metrics.average_matched_iou(pos_ref, pos_pred, min_iou=min_iou)
@@ -138,7 +140,7 @@ def get_embeddings_2(pos_pred, base_dir, soundscape_basename, emb_win_length):
     return p_embeddings, n_embeddings, embs_label
 
 def get_embeddings_3(pos_ann, base_dir, soundscape_basename, emb_win_length):
-    timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)                                            
+    timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename, normalize=True)                                            
     taus = np.mean(timings, axis=1)
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
     neg_ann =  datasets.compute_neg_from_pos(pos_ann, soundscape_length)
@@ -172,7 +174,7 @@ def get_embeddings_3(pos_ann, base_dir, soundscape_basename, emb_win_length):
     n_embs = embeddings[idx_neg_embs]
     p_embs = embeddings[idx_pos_embs]
 
-    return p_embs, n_embs, embs_label #, idx_pos_embs, idx_neg_embs
+    return p_embs, n_embs, embs_label
 
 # TODO: include this in default loop
 def evaluate_annotation_process_on_test_data(query_strategy, base_dir, n_queries, noise_factor, fp_noise=0.0, fn_noise=0.0):
@@ -270,6 +272,60 @@ def predict_test_data(model, base_dir, scores_dir, emb_win_length, class_name):
 
                     proba_f.write(row_str + '\n')
 
+def predict_train_data(sim_dir, base_dir, class_name, method_name, idx_run, emb_win_length=1.0):
+    # print the class name, method name, and run index
+    # to stdout so we can see the progress, and then flush
+    sys.stdout.write("Class: {}, Method: {}, Run: {}\n".format(class_name, method_name, idx_run))
+    sys.stdout.flush()
+    #print("Class: {}, Method: {}, Run: {}".format(class_name, method_name, idx_run))
+            
+    run_dir                     = os.path.join(sim_dir, method_name, str(idx_run))
+    train_soundscape_file_paths = glob.glob(os.path.join(base_dir, '*.wav'))
+    train_annotation_file_paths = glob.glob(os.path.join(run_dir, 'train_annotations', '*.tsv'))
+    train_scores_dir            = os.path.join(run_dir, 'train_scores')
+
+    if not os.path.exists(train_scores_dir):
+        os.makedirs(train_scores_dir)
+    if not os.path.exists(os.path.join(train_scores_dir, 'event_based')):
+        os.makedirs(os.path.join(train_scores_dir, 'event_based'))
+    if not os.path.exists(os.path.join(train_scores_dir, 'segment_based')):
+        os.makedirs(os.path.join(train_scores_dir, 'segment_based'))
+
+
+    def get_soundscape_basename(fp):
+        return os.path.splitext(os.path.basename(fp))[0]
+
+    def get_soundscape_id(fp):
+        return os.path.basename(fp).split('_')[-1].split('.')[0]
+
+    for train_soundscape_file_path in train_soundscape_file_paths:
+        train_sounscape_basename = get_soundscape_basename(train_soundscape_file_path)
+        train_annotation_file    = [fp for fp in train_annotation_file_paths if get_soundscape_id(fp) == get_soundscape_id(train_sounscape_basename)][0]
+        
+        # TODO: pre-load embeddings and timings, takes ~0.01s
+        timings, embeddings = datasets.load_timings_and_embeddings(base_dir, train_sounscape_basename)
+        pos_ann = get_positive_annotations(train_annotation_file)
+        
+        # TODO: pre-load embedding labels, takes ~0.01s
+        _, _, embs_label = get_embeddings_3(pos_ann, base_dir, train_sounscape_basename, emb_win_length)
+        taus = np.mean(timings, axis=1)
+        window_timings = [(tau - emb_win_length / 2, tau + emb_win_length / 2) for tau in taus]
+
+        idx_nonoverlapping = np.arange(len(window_timings)) % 4 == 0
+        window_timings_nonoverlapping = np.array(window_timings)[idx_nonoverlapping]
+        embs_label_nonoverlapping     = embs_label[idx_nonoverlapping]
+        
+        # Event-based for collar eval
+        with open(os.path.join(train_scores_dir, 'event_based', train_sounscape_basename + '.txt'), 'w') as f:
+            for (s, e) in pos_ann:
+                f.write('{}\t{}\t{}\n'.format(s, e, class_name))
+
+        # Segment-based for PSDS eval
+        with open(os.path.join(train_scores_dir, 'segment_based', train_sounscape_basename + '.tsv'), 'w') as f:
+            f.write('onset\toffset\t{}\n'.format(class_name))
+            for (s, e), l in zip(window_timings_nonoverlapping, embs_label_nonoverlapping):
+                f.write('{}\t{}\t{}\n'.format(s, e, l))
+
 
 def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
     soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
@@ -299,6 +355,7 @@ def main():
     parser.add_argument('--strategy_name', required=True, type=str, help='The name of the annotation strategy to evaluate')
     parser.add_argument('--model_name', required=True, type=str, help='The name of the model to evaluate')
     parser.add_argument('--n_runs', required=True, type=int)
+    parser.add_argument('--base_dir', required=True, type=str)
     args = parser.parse_args()
 
     emb_win_length = args.emb_win_length
@@ -308,10 +365,11 @@ def main():
     emb_win_length_str = '{:.1f}'.format(emb_win_length)
     class_name = args.class_name
 
-    train_base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(class_name, emb_win_length_str, emb_hop_length_str)
+    train_base_dir = '{}/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(args.base_dir, class_name, emb_win_length_str, emb_hop_length_str)
 
     for idx_run in range(args.n_runs):
         train_annotation_dir   = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'train_annotations')
+        print(train_annotation_dir)
 
         # load train annotations
         train_annotation_paths = glob.glob(os.path.join(train_annotation_dir, "*.tsv"))
@@ -323,16 +381,25 @@ def main():
             return "_".join(os.path.basename(fp).split('_')[2:]).split('.')[0]
         
         evaluation_budgets = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.0]
+
+        # TODO: something goes wrong here with budget 1.0, max over empty list
+        # the problem is most likely solved, the n_runs were inconsistent with the number of runs in the sim_dir
+        #print(train_annotation_paths)
         n_soundscapes      = np.max([get_iteration(fp) for fp in train_annotation_paths]) + 1
+        #print("n_soundscapes: ", n_soundscapes)
         n_iters            = [int(evaluation_budget * n_soundscapes) for evaluation_budget in evaluation_budgets]
+        #print(n_iters)
 
         for idx_budget, n_iter in enumerate(n_iters):
-            print("strategy = {}, run = {}, model_name = {}, budget = {}".format(args.strategy_name, idx_run, args.model_name, evaluation_budgets[idx_budget]))
+            #print("strategy = {}, run = {}, model_name = {}, budget = {}".format(args.strategy_name, idx_run, args.model_name, evaluation_budgets[idx_budget]))
+            sys.stdout.write("strategy = {}, run = {}, model_name = {}, budget = {}, n_iter = {}\n".format(args.strategy_name, idx_run, args.model_name, evaluation_budgets[idx_budget], n_iter))
             # 1. load the annotations until n_iter
             budget_train_annotation_paths = [fp for fp in train_annotation_paths if get_iteration(fp) < n_iter]
+            #print(budget_train_annotation_paths)
+            assert len(budget_train_annotation_paths) == n_iter, "budget not respected, expected {}, got {}".format(n_iter, len(budget_train_annotation_paths))
             soundscape_basenames          = [get_soundscape_basename(fp) for fp in budget_train_annotation_paths]
 
-            # 2. create model using these annotations
+            # 2. load embeddings and annotations for current budget
             p_embss   = []
             n_embss   = []
             for idx, soundscape_basename in enumerate(soundscape_basenames):
@@ -349,7 +416,13 @@ def main():
             # positive and negative embeddings
             p_embs = np.concatenate(p_embss)
             n_embs = np.concatenate(n_embss)
+
+            # TODO: batch normalization of embeddings in MLP seems to improve performance a lot,
+            # is it possible that the embeddings are not normalized correctly?
+            #print("mean p_embs: ", np.mean(p_embs, axis=0))
+            #print("std p_embs: ",  np.std(p_embs, axis=0))
             
+            # 3. train the model using the annotated embeddings
             if args.model_name == 'prototypical':
                 # NOTE: we only use the predictive model, never the queries, i.e, the query strategies do not matter here
                 model = models.AdaptiveQueryStrategy(train_base_dir, random_soundscape=False, fixed_queries=False, emb_cpd=False, normal_prototypes=True)
@@ -365,32 +438,35 @@ def main():
                 model = sklearn.linear_model.LogisticRegression(max_iter=5000)
             elif args.model_name == 'knn':
                 model = sklearn.neighbors.KNeighborsClassifier(n_neighbors=5, weights='distance')
+            elif args.model_name == 'mlp':
+                model = evaluation_models.MLPClassifier(1024, 256, 2, verbose=False, max_epochs=500, patience=10, batch_size=64)
             else:
                 raise ValueError("Unknown model name: {}".format(args.model_name))
             
             X = np.concatenate([p_embs, n_embs])
             y = np.concatenate([np.ones(len(p_embs)), np.zeros(len(n_embs))])
             if not args.model_name == 'prototypical':
-                print("fitting model ...")
-                print("X.shape: ", X.shape)
-                print("y.shape: ", y.shape)
                 # TODO: this is a hack to make it run faster
                 if 'svm' in args.model_name:
                     X = X[:10000]
                     y = y[:10000]
                 model.fit(X, y)
 
-            # 3. evaluate the model on the test data
             test_base_dir = train_base_dir.replace('train', 'test')
-
-            # TODO: this is not really used, except as verbose output
-            #f1_test_score, miou_test_score = evaluate_model_on_test_data(query_strategy, test_base_dir)
-            #print("strategy {}, budget {}, f1 = {:.3f}, miou = {:.3f} (test)".format(args.strategy_name, evaluation_budgets[idx_budget], f1_test_score, miou_test_score))            
-        
-            # 4. predict the test data, and save to disk
+            # the directory to save the prediction probas in
             scores_dir = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'test_scores', args.model_name, 'budget_{}'.format(evaluation_budgets[idx_budget]))
-            print("predicting test data ...")
+
+            # 5. predict the test data, and save to disk
             predict_test_data(model, test_base_dir, scores_dir, args.emb_win_length, args.class_name)
+
+            # 6. predict scores for the train data, and save to disk
+            # Note: the annotation process only provides event timings,
+            # which means that the score is 1 if the embedding is inside,
+            # and 0 otherwise. Basically, this converts the training annotations
+            # to a format suitable for sed_eval and sed_scores_eval
+            predict_train_data(args.sim_dir, train_base_dir, args.class_name, args.strategy_name, idx_run, args.emb_win_length)
+
+            sys.stdout.flush()
 
 if __name__ == '__main__':
     main()
