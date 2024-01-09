@@ -48,7 +48,6 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--results_dir', help='The directory to save the results in', required=True, type=str)
-    parser.add_argument('--name', required=True, type=str)
     parser.add_argument('--n_soundscapes_budget', required=True, type=int)
     parser.add_argument('--n_queries_budget', required=True, type=int)
     parser.add_argument('--class_name', required=True, type=str)
@@ -56,6 +55,7 @@ def main():
     parser.add_argument('--emb_win_length', required=True, type=float)
     parser.add_argument('--fp_noise', required=True, type=float)
     parser.add_argument('--fn_noise', required=True, type=float)
+    parser.add_argument('--base_dir', required=True, type=str)
 
     args = parser.parse_args()
 
@@ -67,11 +67,11 @@ def main():
     emb_win_length_str = '{:.1f}'.format(emb_win_length)
     class_name = args.class_name
 
-    base_dir = '/mnt/storage_1/datasets/bioacoustic_sed/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(class_name, emb_win_length_str, emb_hop_length_str)
+    base_dir = '{}/generated_datasets/{}_{}_{}s/train_soundscapes_snr_0.0'.format(args.base_dir, class_name, emb_win_length_str, emb_hop_length_str)
     
-    test_base_dir = base_dir.replace('train', 'test')
-    print("base_dir: ", base_dir)
-    print("test_base_dir: ", test_base_dir)
+    # test_base_dir = base_dir.replace('train', 'test')
+    # print("base_dir: ", base_dir)
+    # print("test_base_dir: ", test_base_dir)
 
     n_soundscapes        = args.n_soundscapes_budget
     n_soundscapes_budget = args.n_soundscapes_budget
@@ -96,9 +96,6 @@ def main():
     f1_scores_train_online   = np.zeros((4, n_runs, 1, n_soundscapes_budget))
     miou_scores_train_online = np.zeros((4, n_runs, 1, n_soundscapes_budget))
 
-    print("normal prototypes    = ", normal_prototypes)
-    print("normalize embeddings = ", normalize_embeddings)
-
     #dx_n_queries = 0
     # TODO: legacy, used to initialize with an annotated soundscape, no longer required
     idx_init = 0
@@ -121,13 +118,14 @@ def main():
             bnss.append(copy.copy(remaining_soundscape_basenames))  
       
         budget_count = 0
-        print("####################################################")
-        print("Run: {}".format(idx_run))
-        print("####################################################")
+        # print("####################################################")
+        # print("Run: {}".format(idx_run))
+        # print("####################################################")
 
         while budget_count < n_soundscapes_budget:
-            print("----------------- {} -----------------------".format(budget_count))
-            #print("iteration {}".format(budget_count))
+            sys.stdout.write("Class name: {}, run: {}/{}, annotated soundscapes: {}/{}   \r".format(class_name, idx_run+1, n_runs, budget_count, n_soundscapes_budget))
+            sys.stdout.flush()
+            #print("----------------- {} -----------------------".format(budget_count))
             for idx_query_strategy in indices_query_strategies: 
                 query_strategy = query_strategies[idx_query_strategy]
 
@@ -149,8 +147,8 @@ def main():
 
                 annotated_soundscape_basename, annotations = soundscape_preds
                 query_strategy_name = strategy_names[idx_query_strategy]
-                settings_str = "n_queries_{}_fp_noise_{}_fn_noise_{}".format(args.n_queries_budget, args.fp_noise, args.fn_noise)
-                train_annotation_dir = os.path.join(args.results_dir, args.name, settings_str, query_strategy_name, str(idx_run), 'train_annotations')
+                settings_str = "n_queries_{}_noise_{}".format(args.n_queries_budget, args.fn_noise)
+                train_annotation_dir = os.path.join(args.results_dir, args.class_name, settings_str, query_strategy_name, str(idx_run), 'train_annotations')
                 if not os.path.exists(train_annotation_dir):
                     os.makedirs(train_annotation_dir)
 
@@ -168,11 +166,11 @@ def main():
             # increase budget count
             budget_count += 1
 
-    print("done! saving results in {} ...".format(os.path.join(args.results_dir, args.name)))
+    #print("done! saving results in {} ...".format(os.path.join(args.results_dir, args.class_name)))
 
     # shape (n_query_strategies, n_runs, 1, n_soundscapes_budget)
-    np.save(os.path.join(args.results_dir, args.name, settings_str, "f1_scores_train_online.npy"), f1_scores_train_online)
-    np.save(os.path.join(args.results_dir, args.name, settings_str, "miou_scores_train_online.npy"), miou_scores_train_online)
+    np.save(os.path.join(args.results_dir, args.class_name, settings_str, "f1_scores_train_online.npy"), f1_scores_train_online)
+    np.save(os.path.join(args.results_dir, args.class_name, settings_str, "miou_scores_train_online.npy"), miou_scores_train_online)
 
 if __name__ == '__main__':
     main()
