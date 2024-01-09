@@ -74,7 +74,7 @@ def normalize_embeddings(embeddings, base_dir):
             train_embeddingss.append(train_embeddings)
         train_embeddingss = np.array(train_embeddingss)
 
-        #print(train_embeddingss.shape)
+        # normalize to zero mean unit variance
         mean = np.mean(train_embeddingss, axis=(0, 1))
         std  = np.std(train_embeddingss, axis=(0, 1))
 
@@ -86,7 +86,9 @@ def normalize_embeddings(embeddings, base_dir):
         np.save(embedding_std_path, std)
 
     mean = np.load(embedding_mean_path)
+    #print("mean: ", mean.shape)
     std  = np.load(embedding_std_path)
+    #print("std: ", std.shape)
 
     # normalize
     # TODO: how to handle?
