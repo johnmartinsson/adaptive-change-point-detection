@@ -65,6 +65,7 @@ class WeakLabelOracle:
         for (a_start_time, a_end_time, c) in ann:
             q1 = (a_start_time, a_end_time)
             q2 = (start_time, end_time)
+            # TODO: what is the right threshold here?
             if metrics.coverage(q1, q2) > 0.05:
                 return np.random.choice([0, 1], p=[self.fn_noise, 1-self.fn_noise])
 
