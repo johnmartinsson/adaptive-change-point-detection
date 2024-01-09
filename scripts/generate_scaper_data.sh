@@ -2,8 +2,8 @@ fg_label=$1
 dataset_name=${fg_label}_1.0_0.25s
 bg_label=all
 snr=0
-n_soundscapes=200
-data_dir=/mnt/storage_1/datasets/bioacoustic_sed
+n_soundscapes=$3
+data_dir=$2 #/mnt/storage_1/datasets/bioacoustic_sed
 
 eval "$(conda shell.bash hook)"
 conda activate torchaudio
