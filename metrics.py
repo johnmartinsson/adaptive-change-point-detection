@@ -56,6 +56,53 @@ def test_metrics():
     print("output   : tp = {}, fp = {}, fn = {}".format(tp, fp, fn))
     print("----------------------------------------")
 
+
+def class_average_miou(events_ref, events_pred, n_classes):
+    """
+        Compute the class average intersection-over-union (IOU) from a list of
+        reference and predicted events.
+
+        Parameters
+        ----------
+        events_ref : list of tuples
+            A list of reference events. Each event is a tuple of the form
+            (start_time, end_time, label).
+        events_pred : list of tuples
+            A list of predicted events. Each event is a tuple of the form
+            (start_time, end_time, label).
+
+        Returns
+        -------
+        miou : float
+            The class average intersection-over-union (IOU).
+    """
+
+    miou = 0.0
+    #for c in range(n_classes):
+
+    event_labels = ['me', 'baby', 'dog']
+
+    events_ref_class  = [(e['onset'], e['offset']) for e in events_ref  if e['event_label'] in event_labels]
+    events_pred_class = [(e['onset'], e['offset']) for e in events_pred if e['event_label'] in event_labels]
+
+    if len(events_ref_class) == 0:
+        print("no references")
+        warnings.warn("No reference events found.")
+    if len(events_pred_class) == 0:
+        print("no events")
+        warnings.warn("No predicted events found.")
+
+    if len(events_ref_class) == 0 and len(events_pred_class) == 0:
+        print("no events and no references")
+        warnings.warn("No events found, IOU set to 1.0")
+        return 1.0
+
+    miou_class = average_matched_iou(events_ref_class, events_pred_class, min_iou=0.000001)
+
+    miou += miou_class
+
+    return miou #/ n_classes
+
 def coverage(q1, q2):
     _intersection = intersection(q1, q2)
     return _intersection / (q1[1]-q1[0])
@@ -86,13 +133,18 @@ def iou(q1, q2):
     return intersection(q1, q2) / union(q1, q2)
 
 def average_matched_iou(events_ref, events_pred, min_iou=0.3):
+    """
+        Compute the average IOU of matched events.
+    """
 
     events_ref_ndarray = np.array(events_ref).transpose() # shape (n, 2) -> (2, n)
     events_pred_ndarray = np.array(events_pred).transpose() # shape (m, 2) -> (2, m)
 
     matches = match_events(events_ref_ndarray, events_pred_ndarray, min_iou=min_iou)
 
+    # TODO: is this correct?
     if len(matches) == 0:
+        warnings.warn("No matches found, IOU set to 0.0")
         # TODO: if there are no matches, IOU is 0
         return 0
 
