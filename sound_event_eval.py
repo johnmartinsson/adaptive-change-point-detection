@@ -10,15 +10,13 @@ import sys
 sys.path.append('../')
 import metrics
 
-def load_prediction_files(sim_dir, method_name, model_name, idx_run, budget_name):
+def load_prediction_files(sim_dir, model_name, idx_run, budget_name):
     """Load the prediction files for a given method and run
 
     Parameters
     ----------
     sim_dir : str
         Path to the directory containing the simulations.
-    method_name : str
-        The name of the method to load the predictions for.
     model_name : str
         The name of the model to load the predictions for.
     idx_run : int
@@ -31,9 +29,9 @@ def load_prediction_files(sim_dir, method_name, model_name, idx_run, budget_name
     """
 
     # TODO: how did I compute the train_scores?
-    train_est_list = glob.glob(os.path.join(sim_dir, method_name, str(idx_run), 'train_scores', 'event_based', '*.txt'))
+    train_est_list = glob.glob(os.path.join(sim_dir, str(idx_run), 'train_scores', 'event_based', '*.txt'))
 
-    test_pattern = os.path.join(sim_dir, method_name, str(idx_run), 'test_scores', model_name, budget_name, 'event_based', '*.txt')
+    test_pattern = os.path.join(sim_dir, str(idx_run), 'test_scores', model_name, budget_name, 'event_based', '*.txt')
     test_est_list  = glob.glob(test_pattern)
 
     #print("test_pattern: ", test_pattern)
@@ -48,7 +46,7 @@ def load_reference_files(reference_dir):
 
     return sorted(ref_files)
 
-def load_file_pair_lists(data_dir, sim_dir, method_name, model_name, idx_run, budget_name):
+def load_file_pair_lists(train_base_dir, test_base_dir, sim_dir, strategy_name, model_name, idx_run, budget_name):
     """Create file list for evaluation
 
     Parameters
@@ -65,10 +63,10 @@ def load_file_pair_lists(data_dir, sim_dir, method_name, model_name, idx_run, bu
     def basename(f):
         return os.path.splitext(os.path.basename(f))[0]
 
-    train_est_list, test_est_list = load_prediction_files(sim_dir, method_name, model_name, idx_run, budget_name)
+    train_est_list, test_est_list = load_prediction_files(sim_dir, model_name, idx_run, budget_name)
 
-    train_ref_list = load_reference_files(os.path.join(data_dir, 'train_soundscapes_snr_0.0'))
-    test_ref_list  = load_reference_files(os.path.join(data_dir, 'test_soundscapes_snr_0.0'))
+    train_ref_list = load_reference_files(train_base_dir)
+    test_ref_list  = load_reference_files(test_base_dir)
 
     # TODO: make train_scores part of main script, and assert this here
     #assert len(train_est_list) == len(train_ref_list), "Number of training predictions and references does not match! [{:d}] [{:d}]".format(len(train_est_list), len(train_ref_list))
@@ -133,97 +131,55 @@ def evaluate(file_pair_list, t_collar=0.200):
     
     return f1_event_based, f1_segment_based
 
-def main():
-    """Main
-    """
-    parser = argparse.ArgumentParser(description='Evaluate the sound event detection performance of a method.')
-    parser.add_argument('--class_name', type=str, help='The name of the method to evaluate.')
-    parser.add_argument('--model_name', type=str, help='The name of the model to evaluate.')
-    #parser.add_argument('--budget_name', type=str, help='The name of the budget to evaluate.')
-    parser.add_argument('--sim_dir', type=str, help='The path to the directory containing the simulation results.')
-    parser.add_argument('--t_collar', type=float, help='The tolerance collar to use for the evaluation.')
-    parser.add_argument('--n_runs', type=int, help='The number of runs to evaluate.')
-    parser.add_argument('--base_dir', type=str, help='The base directory.')
-    parser.add_argument('--only_budget_1', required=True, type=str)
-    args = parser.parse_args()
-
-    n_runs      = args.n_runs
-    model_name  = args.model_name
-    #budget_name = args.budget_name
-    class_name  = args.class_name
-    sim_dir     = args.sim_dir
-    t_collar    = args.t_collar
-
-    data_dir = '{}/generated_datasets/{}_{:.1f}_{:.2f}s/'.format(args.base_dir, class_name, 1.0, 0.25)
+def evaluate_test_and_train(conf):
+    """Evaluate the test and train set predictions for all methods and runs"""
         
-    if not os.path.exists(data_dir):
-        raise IOError("Directory does not exist [{:s}]".format(data_dir))
+    if not os.path.exists(conf.train_base_dir):
+        raise IOError("Directory does not exist [{:s}]".format(conf.train_base_dir))
     
-    if not os.path.exists(sim_dir):
-        raise IOError("Directory does not exist [{:s}]".format(sim_dir))
+    if not os.path.exists(conf.test_base_dir):
+        raise IOError("Directory does not exist [{:s}]".format(conf.test_base_dir))
+    
+    if not os.path.exists(conf.sim_dir):
+        raise IOError("Directory does not exist [{:s}]".format(conf.sim_dir))
 
-    if args.only_budget_1 == 'True':
-        budget_names = ['budget_1.0']
-    else:
-        budget_names = ['budget_0.01', 'budget_0.02', 'budget_0.04', 'budget_0.08', 'budget_0.16', 'budget_0.32', 'budget_0.64', 'budget_1.0']
+
+    budget_names = conf.budget_names
 
     n_budgets = len(budget_names)
 
-    f1_event_based_train_results   = np.zeros((4, n_runs, n_budgets))
-    f1_segment_based_train_results = np.zeros((4, n_runs, n_budgets))
-    f1_event_based_test_results    = np.zeros((4, n_runs, n_budgets))
-    f1_segment_based_test_results  = np.zeros((4, n_runs, n_budgets))
+    f1_event_based_train_results   = np.zeros((conf.n_runs, n_budgets))
+    f1_segment_based_train_results = np.zeros((conf.n_runs, n_budgets))
+    f1_event_based_test_results    = np.zeros((conf.n_runs, n_budgets))
+    f1_segment_based_test_results  = np.zeros((conf.n_runs, n_budgets))
 
     for idx_budget, budget_name in enumerate(budget_names):
-        for idx_method, method_name in enumerate(['OPT', 'ADP', 'CPD', 'FIX']):
-            for idx_run in range(n_runs):
-                sys.stdout.write("\rEvaluating method {:s} run {:d} budget {:s}".format(method_name, idx_run, budget_name))
-                sys.stdout.flush()
+        for idx_run in range(conf.n_runs):
+            sys.stdout.write("\rEvaluating method {:s} run {:d} budget {:s}\n".format(conf.strategy_name, idx_run, budget_name))
+            sys.stdout.flush()
 
-                # create the file list
-                train_file_list, test_file_list = load_file_pair_lists(data_dir, sim_dir, method_name, model_name, idx_run, budget_name)
+            # create the file list
+            train_file_list, test_file_list = load_file_pair_lists(conf.train_base_dir, conf.test_base_dir, conf.sim_dir, conf.strategy_name, conf.model_name, idx_run, budget_name)
 
-                # evaluate the training set label quality
-                # TODO: I need to re-think this evaluation
-                f1_event_based_train, f1_segment_based_train = evaluate(train_file_list, t_collar=t_collar)
+            # evaluate the training set label quality
+            # TODO: I need to re-think this evaluation
+            f1_event_based_train, f1_segment_based_train = evaluate(train_file_list, t_collar=conf.t_collar)
 
-                f1_event_based_train_results[idx_method, idx_run, idx_budget]   = f1_event_based_train
-                f1_segment_based_train_results[idx_method, idx_run, idx_budget] = f1_segment_based_train
+            f1_event_based_train_results[idx_run, idx_budget]   = f1_event_based_train
+            f1_segment_based_train_results[idx_run, idx_budget] = f1_segment_based_train
 
-                # evaluate the test set prediction quality
-                f1_event_based_test, f1_segment_based_test = evaluate(test_file_list, t_collar=t_collar)
+            # evaluate the test set prediction quality
+            f1_event_based_test, f1_segment_based_test = evaluate(test_file_list, t_collar=conf.t_collar)
 
-                f1_event_based_test_results[idx_method, idx_run, idx_budget]   = f1_event_based_test
-                f1_segment_based_test_results[idx_method, idx_run, idx_budget] = f1_segment_based_test
+            f1_event_based_test_results[idx_run, idx_budget]   = f1_event_based_test
+            f1_segment_based_test_results[idx_run, idx_budget] = f1_segment_based_test
 
-    np.save(os.path.join(sim_dir, '{}_f1_event_based_train_results.npy'.format(model_name)), f1_event_based_train_results)
-    np.save(os.path.join(sim_dir, '{}_f1_segment_based_train_results.npy'.format(model_name)), f1_segment_based_train_results)
-    np.save(os.path.join(sim_dir, '{}_f1_event_based_test_results.npy'.format(model_name)), f1_event_based_test_results)
-    np.save(os.path.join(sim_dir, '{}_f1_segment_based_test_results.npy'.format(model_name)), f1_segment_based_test_results)
+    np.save(os.path.join(conf.sim_dir, '{}_f1_event_based_train_results.npy'.format(conf.model_name)), f1_event_based_train_results)
+    np.save(os.path.join(conf.sim_dir, '{}_f1_segment_based_train_results.npy'.format(conf.model_name)), f1_segment_based_train_results)
+    np.save(os.path.join(conf.sim_dir, '{}_f1_event_based_test_results.npy'.format(conf.model_name)), f1_event_based_test_results)
+    np.save(os.path.join(conf.sim_dir, '{}_f1_segment_based_test_results.npy'.format(conf.model_name)), f1_segment_based_test_results)
 
-    # print("##############################################")
-    # print("Class: ", class_name)
-    # print("##############################################")
-    # print("")
-    # print("Train labels")
-    # print("")
+    print("test = {}, train = {}".format(np.mean(f1_segment_based_test_results), np.mean(f1_segment_based_train_results)))
 
-    # print("Method & F1 (event-based) & F1 (segment-based) \\\\")
-    # print("\\hline")
-    # for idx_method, method_name in enumerate(['OPT', 'ADP', 'CPD', 'FIX']):
-    #     # print method name and f1 {mean} +/- {std} formatted for a LaTeX table
-    #     print("{:s} & {:.3f} $\pm$ {:.3f} & {:.3f} $\pm$ {:.3f} \\\\".format(method_name, np.mean(f1_event_based_train_results[idx_method]), np.std(f1_event_based_train_results[idx_method]), np.mean(f1_segment_based_train_results[idx_method]), np.std(f1_segment_based_train_results[idx_method])))
-    
-    # print("")
-    # print("Test predictions")
-    # print("")
-    # print("Method & F1 (event-based) & F1 (segment-based) \\\\")
-    # print("\\hline")
-    # for idx_method, method_name in enumerate(['OPT', 'ADP', 'CPD', 'FIX']):
-    #     # print method name and f1 {mean} +/- {std} formatted for a LaTeX table
-    #     print("{:s} & {:.3f} $\pm$ {:.3f} & {:.3f} $\pm$ {:.3f} \\\\".format(method_name, np.mean(f1_event_based_test_results[idx_method]), np.std(f1_event_based_test_results[idx_method]), np.mean(f1_segment_based_test_results[idx_method]), np.std(f1_segment_based_test_results[idx_method])))
-
-    # print("")
-    # print("")
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
