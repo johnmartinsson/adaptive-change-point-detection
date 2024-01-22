@@ -26,7 +26,7 @@ def get_positive_annotations(fp):
         anns = [(float(s), float(e)) for (s, e, _) in lines]
     return anns
 
-def valid_queries(queries, base_dir, soundscape_basename, n_queries):
+def valid_queries(queries, base_dir, soundscape_basename, n_queries, opt_queries):
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
 
     sorted_queries = sorted(queries, key = lambda x: x[0])
@@ -39,7 +39,8 @@ def valid_queries(queries, base_dir, soundscape_basename, n_queries):
         assert q1[1] <= q2[0], "overlapping queries for soundscape: {}".format(soundscape_basename)
 
     # check budget is respected
-    assert len(queries) <= n_queries, "the budget is not respected."
+    if not opt_queries:
+        assert len(queries) <= n_queries, "the budget is not respected: {}/{} queries.".format(len(queries), n_queries)
 
     # check sums correctly
     tot = 0
@@ -59,7 +60,7 @@ def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_i
     # create queries
     queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor, normalize=normalize, iteration=iteration)
 
-    valid_queries(queries, base_dir, soundscape_basename, n_queries)
+    valid_queries(queries, base_dir, soundscape_basename, n_queries, query_strategy.opt_queries)
 
     pos_ref  = datasets.load_pos_ref_aux(base_dir, soundscape_basename)
     pos_pred = oracle.pos_events_from_queries(queries, soundscape_basename)
@@ -84,7 +85,7 @@ def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_i
     # TODO: set emb window length according to the actually used window length !!!!!!
     p_embeddings, n_embeddings, _ = get_embeddings_3(pos_pred, base_dir, soundscape_basename, emb_win_length=emb_win_length)
 
-    return f1_score, mean_iou_score, p_embeddings, n_embeddings, pos_pred
+    return f1_score, mean_iou_score, p_embeddings, n_embeddings, pos_pred, len(queries)
 
 def get_embeddings_2(pos_pred, base_dir, soundscape_basename, emb_win_length):
     timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)                                            
@@ -356,6 +357,7 @@ def main():
     parser.add_argument('--model_name', required=True, type=str, help='The name of the model to evaluate')
     parser.add_argument('--n_runs', required=True, type=int)
     parser.add_argument('--base_dir', required=True, type=str)
+    parser.add_argument('--only_budget_1', required=True, type=str)
     args = parser.parse_args()
 
     emb_win_length = args.emb_win_length
@@ -369,7 +371,7 @@ def main():
 
     for idx_run in range(args.n_runs):
         train_annotation_dir   = os.path.join(args.sim_dir, args.strategy_name, str(idx_run), 'train_annotations')
-        print(train_annotation_dir)
+        #print(train_annotation_dir)
 
         # load train annotations
         train_annotation_paths = glob.glob(os.path.join(train_annotation_dir, "*.tsv"))
@@ -380,15 +382,16 @@ def main():
         def get_soundscape_basename(fp):
             return "_".join(os.path.basename(fp).split('_')[2:]).split('.')[0]
         
-        evaluation_budgets = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.0]
+        if args.only_budget_1 == 'True':
+            evaluation_budgets = [1.0]
+        else:
+            evaluation_budgets = [0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.0]
 
         # TODO: something goes wrong here with budget 1.0, max over empty list
         # the problem is most likely solved, the n_runs were inconsistent with the number of runs in the sim_dir
         #print(train_annotation_paths)
         n_soundscapes      = np.max([get_iteration(fp) for fp in train_annotation_paths]) + 1
-        #print("n_soundscapes: ", n_soundscapes)
         n_iters            = [int(evaluation_budget * n_soundscapes) for evaluation_budget in evaluation_budgets]
-        #print(n_iters)
 
         for idx_budget, n_iter in enumerate(n_iters):
             #print("strategy = {}, run = {}, model_name = {}, budget = {}".format(args.strategy_name, idx_run, args.model_name, evaluation_budgets[idx_budget]))
