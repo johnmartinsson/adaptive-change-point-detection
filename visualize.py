@@ -63,8 +63,8 @@ def plot_annotations(pred_annotation_file, ref_annotation_file, wav_file, ax):
     pred_annotations = []
     with open(pred_annotation_file, 'r') as f:
         lines = f.readlines()
-        for l in lines[1:]:
-            d = l.split('\t')
+        for line in lines[1:]:
+            d = line.split('\t')
             start_time = float(d[0])
             end_time = float(d[1])
             pred_annotations.append((start_time, end_time))
@@ -73,8 +73,8 @@ def plot_annotations(pred_annotation_file, ref_annotation_file, wav_file, ax):
     ref_annotations = []
     with open(ref_annotation_file, 'r') as f:
         lines = f.readlines()
-        for l in lines:
-            d = l.split('\t')
+        for line in lines:
+            d = line.split('\t')
             start_time = float(d[0])
             end_time = float(d[1])
             ref_annotations.append((start_time, end_time))
