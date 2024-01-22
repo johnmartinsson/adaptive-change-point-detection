@@ -21,7 +21,7 @@ def weighted_average(xn_mean, n, xm_mean, m):
 def binary_entropy(p):
     return -p*np.log2(p) - (1-p)*np.log2(1-p)
 
-def queries_from_probas(probas, timings, n_queries, soundscape_length):
+def queries_from_probas(probas, timings, n_queries, soundscape_length, prominence_threshold=0.0):
     probas = probas.reshape((len(probas), 1))
     ds = cpd.distance_past_and_future_averages(
         probas,
@@ -31,7 +31,7 @@ def queries_from_probas(probas, timings, n_queries, soundscape_length):
     n_peaks = n_queries-1
 
     # we want to rank all peaks, hence 0 prominence
-    peaks = find_peaks(ds, prominence=0)
+    peaks = find_peaks(ds, prominence=prominence_threshold)
 
     # sort peaks by prominence
     peak_indices = peaks[0]
@@ -152,7 +152,7 @@ class AdaptiveQueryStrategy():
         return pos_events
 
 
-    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=True, iteration=0):
+    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=True, iteration=0, prominence_threshold=0.0):
         """
         Return the query timings.
         """
@@ -162,7 +162,7 @@ class AdaptiveQueryStrategy():
 
             return opt_queries
         if self.emb_cpd:
-            cpd_queries = qs.change_point_query_strategy(n_queries, base_dir, soundscape_basename, soundscape_length, normalize=normalize)
+            cpd_queries = qs.change_point_query_strategy(n_queries, base_dir, soundscape_basename, soundscape_length, normalize=normalize, prominence_threshold=prominence_threshold)
             return cpd_queries
         if self.fixed_queries:
 
@@ -180,7 +180,7 @@ class AdaptiveQueryStrategy():
                 os.makedirs(proba_dir)
             np.save(os.path.join(proba_dir, "{:05d}_{}.npy".format(iteration, soundscape_basename)), probas)
 
-            al_queries = queries_from_probas(probas, timings, n_queries, soundscape_length)
+            al_queries = queries_from_probas(probas, timings, n_queries, soundscape_length, prominence_threshold=prominence_threshold)
             al_queries = sorted(al_queries, key=lambda x: x[0])
 
             return al_queries

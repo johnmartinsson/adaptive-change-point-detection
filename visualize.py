@@ -125,8 +125,9 @@ def plot_annotations(pred_annotation_file, ref_annotation_file, wav_file, ax):
     #     plt.show()
     
 
-def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, vis_ent=False, vis_embs_label=False, savefile=None, noise_factor=0, normalize=True, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0):
-    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise)
+def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, vis_ent=False, vis_embs_label=False, savefile=None, noise_factor=0, normalize=True, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0, coverage_threshold=0.05, prominence_threshold=0.0):
+    
+    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise, coverage_threshold=coverage_threshold)
 
     #print("###########################################")
     #print(query_strategy_name)
@@ -137,9 +138,9 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
     timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
     pred_probas = query_strategy.predict_proba(embeddings, noise_factor=noise_factor)
     if query_strategy.fixed_queries or query_strategy.emb_cpd or query_strategy.opt_queries:
-        pred_queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries)
+        pred_queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, prominence_threshold=prominence_threshold)
     else:
-        pred_queries = models.queries_from_probas(pred_probas, timings, n_queries, soundscape_length)
+        pred_queries = models.queries_from_probas(pred_probas, timings, n_queries, soundscape_length, prominence_threshold=prominence_threshold)
         pred_queries = sorted(pred_queries, key=lambda x: x[0])
     print("method = {}, n_queries = {}".format(query_strategy_name, len(pred_queries)))
 
@@ -166,7 +167,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
     
     fig, ax = plt.subplots(2, 1, figsize=(10,3.0))
     ax[0].imshow(np.flip(np.log(mel_spectrogram + 1e-10), axis=0), aspect='auto')
-    ax[0].set_title(query_strategy_name)
+    ax[0].set_title(query_strategy_name + ", prominence = {}, n_queries = {}".format(prominence_threshold, len(pred_queries)))
     ax[0].set_xticklabels([])
     ax[0].set_yticklabels([])
 
@@ -181,7 +182,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
             embeddings,
             timings,
             M = 1,
-            prominence = 0,
+            prominence = prominence_threshold,
             n_peaks = n_queries-1,
             distance_fn = cpd.cosine_distance_score,
         )
@@ -190,7 +191,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
 
 
     # peaks 
-    peaks = find_peaks(ds, prominence=0)
+    peaks = find_peaks(ds, prominence=prominence_threshold)
     peak_indices     = peaks[0]
     peak_prominences = peaks[1]['prominences']
     peak_indices = sorted(utils.sort_by_rank(peak_prominences, peak_indices)[:n_queries-1])
