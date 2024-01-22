@@ -5,6 +5,7 @@ import datasets
 import query_strategies as qs
 import utils
 import oracles
+import config
 
 import warnings
 
@@ -31,7 +32,7 @@ def queries_from_probas(probas, timings, n_queries, soundscape_length, prominenc
     n_peaks = n_queries-1
 
     # we want to rank all peaks, hence 0 prominence
-    peaks = find_peaks(ds, prominence=prominence_threshold)
+    peaks = find_peaks(ds, prominence=config.prominence_threshold)
 
     # sort peaks by prominence
     peak_indices = peaks[0]

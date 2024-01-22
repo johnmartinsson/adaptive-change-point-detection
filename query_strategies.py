@@ -4,6 +4,7 @@ import librosa
 
 import datasets
 import change_point_detection as cpd
+import config
 
 def get_soundscape_length(base_dir, soundscape_name):
 
@@ -48,7 +49,7 @@ def change_point_query_strategy(n_queries, base_dir, soundscape_name, soundscape
         embeddings,
         timings,
         M = 1,
-        prominence = prominence_threshold,
+        prominence = config.prominence_threshold,
         n_peaks = n_queries-1,
     )
 

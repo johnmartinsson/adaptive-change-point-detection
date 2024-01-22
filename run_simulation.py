@@ -56,6 +56,8 @@ def main():
     parser.add_argument('--fp_noise', required=True, type=float)
     parser.add_argument('--fn_noise', required=True, type=float)
     parser.add_argument('--base_dir', required=True, type=str)
+    #parser.add_argument('--prominence_threshold', required=True, type=float)
+    #parser.add_argument('--coverage_threshold', required=True, type=float)
 
     args = parser.parse_args()
 
