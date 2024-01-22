@@ -35,7 +35,7 @@ def optimal_query_strategy(base_dir, soundscape_name, soundscape_length):
 
     return opt_queries
 
-def change_point_query_strategy(n_queries, base_dir, soundscape_name, soundscape_length, normalize=False):
+def change_point_query_strategy(n_queries, base_dir, soundscape_name, soundscape_length, normalize=False, prominence_threshold=0.0):
     timings, embeddings = datasets.load_timings_and_embeddings(
         base_dir = base_dir,
         soundscape_basename = soundscape_name,
@@ -48,8 +48,8 @@ def change_point_query_strategy(n_queries, base_dir, soundscape_name, soundscape
         embeddings,
         timings,
         M = 1,
-        prominence = 0,
-        n_peaks = n_queries-1
+        prominence = prominence_threshold,
+        n_peaks = n_queries-1,
     )
 
     # create change-point queries

@@ -32,7 +32,7 @@ def load_annotations(file_path):
     return annotations
 
 class WeakLabelOracle:
-    def __init__(self, base_dir, fp_noise, fn_noise):
+    def __init__(self, base_dir, fp_noise, fn_noise, coverage_threshold=0.05):
         super(WeakLabelOracle, self).__init__()
         annotation_file_paths = glob.glob(os.path.join(base_dir, '*.txt'))
         annotation_file_paths = list(filter(lambda x: not "embedding" in x, annotation_file_paths))
@@ -40,6 +40,7 @@ class WeakLabelOracle:
         # noisy oracle
         self.fp_noise = fp_noise
         self.fn_noise = fn_noise
+        self.coverage_threshold = coverage_threshold
 
         if len(annotation_file_paths) == 0:
             raise ValueError("no annotation files in: {}".format(base_dir))
@@ -69,9 +70,9 @@ class WeakLabelOracle:
             q_qu = (q_start_time, q_end_time)
             # TODO: what is the right threshold here?
             # TODO: need to restore this again
-            thr = 0.05
+            #thr = 0.05
             #thr = 0.99
-            if metrics.coverage(q_gt, q_qu) > thr:
+            if metrics.coverage(q_gt, q_qu) > self.coverage_threshold:
                 return np.random.choice([0, 1], p=[self.fn_noise, 1-self.fn_noise])
 
         return np.random.choice([0, 1], p=[1-self.fp_noise, self.fp_noise])
