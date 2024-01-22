@@ -51,14 +51,14 @@ done
 #########################
 
 # compute training and test prediction scores
-# echo "computing training and test prediction scores for all classes and evaluation models ..."
-# for class_name in me dog baby
-# do
-#     for model_name in mlp prototypical
-#     do        
-#         bash ./scripts/evaluate_all.sh $class_name ${results_dir}/$class_name/n_queries_${n_queries_budget}_noise_${noise}/ $model_name $base_dir $n_runs $only_budget_1
-#     done
-# done
+echo "computing training and test prediction scores for all classes and evaluation models ..."
+for class_name in me dog baby
+do
+    for model_name in mlp prototypical
+    do        
+        bash ./scripts/evaluate_all.sh $class_name ${results_dir}/$class_name/n_queries_${n_queries_budget}_noise_${noise}/ $model_name $base_dir $n_runs $only_budget_1
+    done
+done
 
 #########################
 # Evaluation
@@ -66,14 +66,14 @@ done
 
 t_collar=2.0
 # evaluate the results
-# echo "evaluating the results for all classes and evaluation models ..."
-# for class_name in me dog baby
-# do
-#     for model_name in mlp prototypical
-#     do        
-#         python sound_event_eval.py --class_name=$class_name --model_name=$model_name --t_collar=$t_collar --n_runs=$n_runs --sim_dir=${results_dir}/$class_name/n_queries_${n_queries_budget}_noise_${noise}/ --base_dir=$base_dir --only_budget_1=$only_budget_1
-#     done
-# done
+echo "evaluating the results for all classes and evaluation models ..."
+for class_name in me dog baby
+do
+    for model_name in mlp prototypical
+    do        
+        python sound_event_eval.py --class_name=$class_name --model_name=$model_name --t_collar=$t_collar --n_runs=$n_runs --sim_dir=${results_dir}/$class_name/n_queries_${n_queries_budget}_noise_${noise}/ --base_dir=$base_dir --only_budget_1=$only_budget_1
+    done
+done
 
 # echo end time to file
 echo "end time: $(date)" >> ${results_dir}/time.txt

@@ -2,6 +2,7 @@ import numpy as np
 import os
 import metrics
 import glob
+import config
 
 def class_name2class_id(class_name):
     # TODO: rewrite this to multi-class formulation,
@@ -72,7 +73,7 @@ class WeakLabelOracle:
             # TODO: need to restore this again
             #thr = 0.05
             #thr = 0.99
-            if metrics.coverage(q_gt, q_qu) > self.coverage_threshold:
+            if metrics.coverage(q_gt, q_qu) > config.coverage_threshold:
                 return np.random.choice([0, 1], p=[self.fn_noise, 1-self.fn_noise])
 
         return np.random.choice([0, 1], p=[1-self.fp_noise, self.fp_noise])
