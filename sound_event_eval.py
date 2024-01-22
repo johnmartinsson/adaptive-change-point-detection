@@ -144,6 +144,7 @@ def main():
     parser.add_argument('--t_collar', type=float, help='The tolerance collar to use for the evaluation.')
     parser.add_argument('--n_runs', type=int, help='The number of runs to evaluate.')
     parser.add_argument('--base_dir', type=str, help='The base directory.')
+    parser.add_argument('--only_budget_1', required=True, type=str)
     args = parser.parse_args()
 
     n_runs      = args.n_runs
@@ -161,7 +162,11 @@ def main():
     if not os.path.exists(sim_dir):
         raise IOError("Directory does not exist [{:s}]".format(sim_dir))
 
-    budget_names = ['budget_0.01', 'budget_0.02', 'budget_0.04', 'budget_0.08', 'budget_0.16', 'budget_0.32', 'budget_0.64', 'budget_1.0']
+    if args.only_budget_1 == 'True':
+        budget_names = ['budget_1.0']
+    else:
+        budget_names = ['budget_0.01', 'budget_0.02', 'budget_0.04', 'budget_0.08', 'budget_0.16', 'budget_0.32', 'budget_0.64', 'budget_1.0']
+
     n_budgets = len(budget_names)
 
     f1_event_based_train_results   = np.zeros((4, n_runs, n_budgets))
