@@ -59,14 +59,19 @@ class WeakLabelOracle:
                 pos_events.append((q_st, q_et))
         return pos_events
 
-    def query(self, start_time, end_time, soundscape_basename):
+    def query(self, q_start_time, q_end_time, soundscape_basename):
         ann = self.annotations[soundscape_basename]
         #print("ann: ", ann)
         for (a_start_time, a_end_time, c) in ann:
-            q1 = (a_start_time, a_end_time)
-            q2 = (start_time, end_time)
+            # ground truth timings
+            q_gt = (a_start_time, a_end_time)
+            # query timings
+            q_qu = (q_start_time, q_end_time)
             # TODO: what is the right threshold here?
-            if metrics.coverage(q1, q2) > 0.05:
+            # TODO: need to restore this again
+            thr = 0.05
+            #thr = 0.99
+            if metrics.coverage(q_gt, q_qu) > thr:
                 return np.random.choice([0, 1], p=[self.fn_noise, 1-self.fn_noise])
 
         return np.random.choice([0, 1], p=[1-self.fp_noise, self.fp_noise])
