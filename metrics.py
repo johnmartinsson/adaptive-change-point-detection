@@ -104,6 +104,10 @@ def class_average_miou(events_ref, events_pred, n_classes):
     return miou #/ n_classes
 
 def coverage(q1, q2):
+    """
+        Compute the coverage of q1 by q2. Coverage is defined as the ratio of
+        the intersection of q1 and q2 to the length of q1.
+    """
     _intersection = intersection(q1, q2)
     return _intersection / (q1[1]-q1[0])
 
