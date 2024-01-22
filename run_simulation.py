@@ -23,7 +23,7 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
     next_soundscape_basename = query_strategy.next_soundscape_basename(soundscape_basenames)
 
     # evaluate label-quality and get embeddings and annotations
-    f1_score, mean_iou_score, p_embeddings, n_embeddings, pos_pred = evaluate.evaluate_query_strategy( # TODO: this should probably be moved to the query strategy class
+    f1_score, mean_iou_score, p_embeddings, n_embeddings, pos_pred, used_queries = evaluate.evaluate_query_strategy( # TODO: this should probably be moved to the query strategy class
         base_dir            = base_dir,
         soundscape_basename = next_soundscape_basename,
         query_strategy      = query_strategy,
@@ -43,7 +43,7 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
 
     soundscape_preds = (next_soundscape_basename,  pos_pred)
     
-    return f1_score, mean_iou_score, p_embeddings, n_embeddings, soundscape_basenames_remaining, soundscape_preds
+    return f1_score, mean_iou_score, p_embeddings, n_embeddings, soundscape_basenames_remaining, soundscape_preds, used_queries
 
 def main():
     parser = argparse.ArgumentParser()
@@ -96,6 +96,8 @@ def main():
     f1_scores_train_online   = np.zeros((4, n_runs, 1, n_soundscapes_budget))
     miou_scores_train_online = np.zeros((4, n_runs, 1, n_soundscapes_budget))
 
+    query_count = np.zeros((4, n_runs))
+
     #dx_n_queries = 0
     # TODO: legacy, used to initialize with an annotated soundscape, no longer required
     idx_init = 0
@@ -131,7 +133,7 @@ def main():
 
                 bns = bnss[idx_query_strategy]
 
-                f1_train, miou_train, _, _, bns, soundscape_preds = simulate_strategy(
+                f1_train, miou_train, _, _, bns, soundscape_preds, used_queries = simulate_strategy(
                     query_strategy       = query_strategy,
                     soundscape_basenames = bns,
                     n_queries            = n_queries,
@@ -144,6 +146,8 @@ def main():
                     fp_noise             = args.fp_noise,
                     fn_noise             = args.fn_noise,
                 )
+
+                query_count[idx_query_strategy, idx_run] += used_queries
 
                 annotated_soundscape_basename, annotations = soundscape_preds
                 query_strategy_name = strategy_names[idx_query_strategy]
@@ -171,6 +175,7 @@ def main():
     # shape (n_query_strategies, n_runs, 1, n_soundscapes_budget)
     np.save(os.path.join(args.results_dir, args.class_name, settings_str, "f1_scores_train_online.npy"), f1_scores_train_online)
     np.save(os.path.join(args.results_dir, args.class_name, settings_str, "miou_scores_train_online.npy"), miou_scores_train_online)
+    np.save(os.path.join(args.results_dir, args.class_name, settings_str, "query_count.npy"), query_count)
 
 if __name__ == '__main__':
     main()
