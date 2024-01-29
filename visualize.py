@@ -17,16 +17,16 @@ import change_point_detection as cpd
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 
-def plot_soundscape(datasets_dir, sim_dir, soundscape_basename, class_name, n_queries, idx_run, method_name, ax):
+def plot_soundscape(datasets_dir, pred_annotation_dir, truth_annotation_dir, soundscape_basename, ax):
     """ The method uses plot_annotations to plot the ground truth annotations, and the ground truth annotations for
     <soundscape_m>.txt in the directory base_dir, and the predicted annotations for <iter_n>_<soundscape_m>.tsv in the in
     the sim_dir
     """
-    print(sim_dir)
-    print(datasets_dir)
-    pred_annotation_dir = os.path.join(sim_dir, '{}/n_queries_{}_noise_0.0/{}/{}/train_annotations/'.format(class_name, n_queries, method_name, idx_run))
+    #print(sim_dir)
+    #print(datasets_dir)
+    #pred_annotation_dir = os.path.join(sim_dir, '{}/n_queries_{}_noise_0.0/{}/{}/train_annotations/'.format(class_name, n_queries, method_name, idx_run))
     # /mnt/storage_1/john/data/bioacoustic_sed/generated_datasets/me_1.0_0.25s/train_soundscapes_snr_0.0/
-    truth_annotation_dir = os.path.join(datasets_dir, '{}_1.0_0.25s/train_soundscapes_snr_0.0/'.format(class_name))
+    #truth_annotation_dir = os.path.join(datasets_dir, '{}_1.0_0.25s/train_soundscapes_snr_0.0/'.format(class_name))
 
     # find the predicted annotation file (different iter_n) which ends with <soundscape_m>.tsv
     pred_annotation_file = None

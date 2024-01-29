@@ -179,7 +179,8 @@ def evaluate_test_and_train(conf):
     np.save(os.path.join(conf.sim_dir, '{}_f1_event_based_test_results.npy'.format(conf.model_name)), f1_event_based_test_results)
     np.save(os.path.join(conf.sim_dir, '{}_f1_segment_based_test_results.npy'.format(conf.model_name)), f1_segment_based_test_results)
 
-    print("test = {}, train = {}".format(np.mean(f1_segment_based_test_results), np.mean(f1_segment_based_train_results)))
+    print("segment-based : test = {}, train = {}".format(np.mean(f1_segment_based_test_results), np.mean(f1_segment_based_train_results)))
+    print("event-based   : test = {}, train = {}".format(np.mean(f1_event_based_test_results), np.mean(f1_event_based_train_results)))
 
 # if __name__ == "__main__":
 #     main()
