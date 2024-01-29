@@ -5,7 +5,6 @@ import datasets
 import query_strategies as qs
 import utils
 import oracles
-import config
 
 import warnings
 
@@ -22,7 +21,7 @@ def weighted_average(xn_mean, n, xm_mean, m):
 def binary_entropy(p):
     return -p*np.log2(p) - (1-p)*np.log2(1-p)
 
-def queries_from_probas(probas, timings, n_queries, soundscape_length, prominence_threshold=0.0):
+def queries_from_probas(probas, timings, n_queries, soundscape_length, prominence_threshold):
     probas = probas.reshape((len(probas), 1))
     ds = cpd.distance_past_and_future_averages(
         probas,
@@ -32,7 +31,7 @@ def queries_from_probas(probas, timings, n_queries, soundscape_length, prominenc
     n_peaks = n_queries-1
 
     # we want to rank all peaks, hence 0 prominence
-    peaks = find_peaks(ds, prominence=config.prominence_threshold)
+    peaks = find_peaks(ds, prominence=prominence_threshold)
 
     # sort peaks by prominence
     peak_indices = peaks[0]
@@ -57,19 +56,32 @@ class AdaptiveQueryStrategy():
     """
     The base class for an active learning model.
     """
-    def __init__(self, base_dir, random_soundscape, fixed_queries, opt_queries=False, emb_cpd=False, normal_prototypes=True):
+    def __init__(self, conf): #base_dir, random_soundscape, fixed_queries, opt_queries=False, emb_cpd=False, normal_prototypes=True):
         #assert not fixed_queries and emb_cpd, "both should not be true at the same time ..."
         #self.base_dir          = base_dir
-        self.opt_queries       = opt_queries
-        self.random_soundscape = random_soundscape
-        self.fixed_queries     = fixed_queries
-        self.emb_cpd           = emb_cpd
+
+        if conf.strategy_name == 'OPT':
+            self.opt_queries       = True
+        else:
+            self.opt_queries       = False
+        self.random_soundscape = True
+
+        if conf.strategy_name == 'FIX':
+            self.fixed_queries     = True
+        else:
+            self.fixed_queries     = False
+        
+        if conf.strategy_name == 'CPD':
+            self.emb_cpd           = True
+        else:
+            self.emb_cpd           = False
+        
 
         # initial state of prototypes
         self.n_count     = 0
         self.p_count     = 0
 
-        if normal_prototypes:
+        if conf.normal_prototypes:
             self.n_prototype = np.random.randn(1024)
             self.p_prototype = np.random.randn(1024)
         else:
@@ -153,7 +165,7 @@ class AdaptiveQueryStrategy():
         return pos_events
 
 
-    def predict_queries(self, base_dir, soundscape_basename, n_queries, noise_factor=0, normalize=True, iteration=0, prominence_threshold=0.0):
+    def predict_queries(self, base_dir, soundscape_basename, n_queries, prominence_threshold, noise_factor=0, normalize=True, iteration=0):
         """
         Return the query timings.
         """

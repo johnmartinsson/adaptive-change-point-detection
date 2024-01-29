@@ -2,7 +2,6 @@ import numpy as np
 import os
 import metrics
 import glob
-import config
 
 def class_name2class_id(class_name):
     # TODO: rewrite this to multi-class formulation,
@@ -33,7 +32,7 @@ def load_annotations(file_path):
     return annotations
 
 class WeakLabelOracle:
-    def __init__(self, base_dir, fp_noise, fn_noise, coverage_threshold=0.05):
+    def __init__(self, base_dir, fp_noise, fn_noise, coverage_threshold):
         super(WeakLabelOracle, self).__init__()
         annotation_file_paths = glob.glob(os.path.join(base_dir, '*.txt'))
         annotation_file_paths = list(filter(lambda x: not "embedding" in x, annotation_file_paths))
@@ -70,10 +69,7 @@ class WeakLabelOracle:
             # query timings
             q_qu = (q_start_time, q_end_time)
             # TODO: what is the right threshold here?
-            # TODO: need to restore this again
-            #thr = 0.05
-            #thr = 0.99
-            if metrics.coverage(q_gt, q_qu) > config.coverage_threshold:
+            if metrics.coverage(q_gt, q_qu) > self.coverage_threshold:
                 return np.random.choice([0, 1], p=[self.fn_noise, 1-self.fn_noise])
 
         return np.random.choice([0, 1], p=[1-self.fp_noise, self.fp_noise])
