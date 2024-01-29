@@ -27,7 +27,7 @@ Scaper is used to generate the soundscapes using the source data, and BirdNET-An
 
 # Run simulations / experiments
 
-If everything is setup properly you should be able to run everything by simply writing:
+If everything is setup properly you should be able to run everything by simply writing: test
 
         python main.py
 
