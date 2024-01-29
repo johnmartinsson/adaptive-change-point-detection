@@ -21,7 +21,7 @@ import config
 def list_difference(l1, l2):
     return sorted(list(set(l1).difference(l2)))
 
-def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir, min_iou, noise_factor, normalize, iteration, emb_win_length, fp_noise, fn_noise):
+def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir, min_iou, noise_factor, normalize, iteration, emb_win_length, fp_noise, fn_noise, prominence_threshold, converage_threshold):
     # get the next soundscape to annotate
     next_soundscape_basename = query_strategy.next_soundscape_basename(soundscape_basenames)
 
@@ -37,7 +37,9 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
         iteration           = iteration,
         emb_win_length      = emb_win_length,
         fp_noise            = fp_noise,
-        fn_noise            = fn_noise
+        fn_noise            = fn_noise,
+        prominence_threshold = prominence_threshold,
+        converage_threshold  = converage_threshold,
     )
 
     soundscape_basenames_remaining = list_difference(soundscape_basenames, [next_soundscape_basename])
@@ -48,14 +50,15 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
     
     return f1_score, mean_iou_score, p_embeddings, n_embeddings, soundscape_basenames_remaining, soundscape_preds, used_queries
 
-def main():
+def run(conf):
     # Configuration file
-    conf = config.Config()
+    # conf = config.Config()
 
     ################################################################################
     # Simulate the active learning process
     ################################################################################
 
+    # TODO: check all runs, and only start from the ones that are missing ...
     if not len(glob.glob(os.path.join(conf.sim_dir, '0', 'train_annotations', '*.tsv'))) == conf.n_soundscapes:
         print("Simulating active learning process ...")
         # TODO: move into own method
@@ -96,6 +99,8 @@ def main():
                     emb_win_length       = conf.emb_win_length,
                     fp_noise             = conf.fp_noise,
                     fn_noise             = conf.fn_noise,
+                    prominence_threshold = conf.prominence_threshold,
+                    converage_threshold  = conf.coverage_threshold,
                 )
 
                 query_count[idx_run] += used_queries
@@ -124,11 +129,17 @@ def main():
         np.save(os.path.join(conf.sim_dir, "f1_scores_train_online.npy"), f1_scores_train_online)
         np.save(os.path.join(conf.sim_dir, "miou_scores_train_online.npy"), miou_scores_train_online)
         np.save(os.path.join(conf.sim_dir, "query_count.npy"), query_count)
+        print("query count: ", query_count)
+
+    # TODO: testing
+    #conf.load_config(conf.sim_dir)
+    #print("config: {}".format(conf.__dict__))
 
     #######################################################################################
     # Make predictions using evaluation model trained on the training dataset
     #######################################################################################
-    if not os.path.exists(os.path.join(conf.sim_dir, '0', 'test_scores')):
+    # TODO: check all runs, and only start from the ones that are missing ...
+    if not os.path.exists(os.path.join(conf.sim_dir, '0', 'test_scores', conf.model_name)):
         print("Predicting test and train data ...")
         evaluate.predict_test_and_train(conf)
 
@@ -138,4 +149,5 @@ def main():
     sound_event_eval.evaluate_test_and_train(conf)
 
 if __name__ == '__main__':
-    main()
+    conf = config.Config()
+    run(conf)

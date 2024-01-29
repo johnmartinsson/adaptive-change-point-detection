@@ -52,13 +52,13 @@ def valid_queries(queries, base_dir, soundscape_basename, n_queries, opt_queries
     #assert tot <= soundscape_length, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
     assert tot <= soundscape_length + 0.001, "expected sum: {}, output sum: {}".format(soundscape_length, tot)
 
-def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0, normalize=False, iteration=0, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0):
+def evaluate_query_strategy(base_dir, soundscape_basename, query_strategy, min_iou=0.001, n_queries=0, noise_factor=0, normalize=False, iteration=0, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0, prominence_threshold=0.0, converage_threshold=0.0):
     #query_strategy.base_dir = base_dir
     # create oracle
-    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise)
+    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise, coverage_threshold=converage_threshold)
 
     # create queries
-    queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, noise_factor=noise_factor, normalize=normalize, iteration=iteration)
+    queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, prominence_threshold=prominence_threshold, noise_factor=noise_factor, normalize=normalize, iteration=iteration)
 
     valid_queries(queries, base_dir, soundscape_basename, n_queries, query_strategy.opt_queries)
 
