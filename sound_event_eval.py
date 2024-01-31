@@ -5,6 +5,7 @@ import dcase_util
 import numpy as np
 import glob
 import argparse
+import yaml
 
 import sys
 sys.path.append('../')
@@ -74,7 +75,7 @@ def load_file_pair_lists(train_base_dir, test_base_dir, sim_dir, strategy_name, 
 
     return zip(train_ref_list, train_est_list), zip(test_ref_list, test_est_list)
 
-def evaluate(file_pair_list, t_collar=0.200):
+def evaluate(file_pair_list, t_collar=0.200, time_resolution=0.01):
     data = []
     all_data = dcase_util.containers.MetaDataContainer()
     for ref_file, est_file in file_pair_list:
@@ -97,7 +98,7 @@ def evaluate(file_pair_list, t_collar=0.200):
     event_labels = all_data.unique_event_labels
 
     # TODO: make sure sensible settings are used
-    segment_based_metrics = sed_eval.sound_event.SegmentBasedMetrics(event_labels)
+    segment_based_metrics = sed_eval.sound_event.SegmentBasedMetrics(event_labels, time_resolution=time_resolution)
     event_based_metrics   = sed_eval.sound_event.EventBasedMetrics(event_labels, t_collar=t_collar)
 
     # TODO: understand how results are accumulated, is it an online average over all files?
@@ -124,63 +125,68 @@ def evaluate(file_pair_list, t_collar=0.200):
     #    miou_files.append(miou_file)
     #iou_event_based  = np.mean(miou_files)
 
-    f1_segment_based = segment_based_metrics.results_overall_metrics()['f_measure']['f_measure']
-    f1_event_based   = event_based_metrics.results_overall_metrics()['f_measure']['f_measure']
+    segment_based = segment_based_metrics.results_overall_metrics()#['f_measure']['f_measure']
+    event_based   = event_based_metrics.results_overall_metrics()#['f_measure']['f_measure']
 
     # TODO: maybe add the intersection-over-union metric as well?
     
-    return f1_event_based, f1_segment_based
+    return event_based, segment_based
 
 def evaluate_test_and_train(conf):
     """Evaluate the test and train set predictions for all methods and runs"""
+    #print("evaluation ...")
         
     if not os.path.exists(conf.train_base_dir):
+        print("Directory does not exist [{:s}]".format(conf.train_base_dir))
         raise IOError("Directory does not exist [{:s}]".format(conf.train_base_dir))
     
     if not os.path.exists(conf.test_base_dir):
+        print("Directory does not exist [{:s}]".format(conf.test_base_dir))
         raise IOError("Directory does not exist [{:s}]".format(conf.test_base_dir))
     
     if not os.path.exists(conf.sim_dir):
+        print("Directory does not exist [{:s}]".format(conf.sim_dir))
         raise IOError("Directory does not exist [{:s}]".format(conf.sim_dir))
 
 
     budget_names = conf.budget_names
+    #print("budget names: ", budget_names)
 
-    n_budgets = len(budget_names)
-
-    f1_event_based_train_results   = np.zeros((conf.n_runs, n_budgets))
-    f1_segment_based_train_results = np.zeros((conf.n_runs, n_budgets))
-    f1_event_based_test_results    = np.zeros((conf.n_runs, n_budgets))
-    f1_segment_based_test_results  = np.zeros((conf.n_runs, n_budgets))
+    #n_budgets = len(budget_names)
 
     for idx_budget, budget_name in enumerate(budget_names):
+        #print("budget name ...", budget_name)
         for idx_run in range(conf.n_runs):
+            #print("idx_run ...", idx_run)
             sys.stdout.write("\rEvaluating method {:s} run {:d} budget {:s}\n".format(conf.strategy_name, idx_run, budget_name))
             sys.stdout.flush()
 
             # create the file list
             train_file_list, test_file_list = load_file_pair_lists(conf.train_base_dir, conf.test_base_dir, conf.sim_dir, conf.strategy_name, conf.model_name, idx_run, budget_name)
 
+            run_dir = os.path.join(conf.sim_dir, str(idx_run))
+
             # evaluate the training set label quality
             # TODO: I need to re-think this evaluation
-            f1_event_based_train, f1_segment_based_train = evaluate(train_file_list, t_collar=conf.t_collar)
+            event_based_train, segment_based_train = evaluate(train_file_list, t_collar=conf.t_collar, time_resolution=conf.time_resolution)
 
-            f1_event_based_train_results[idx_run, idx_budget]   = f1_event_based_train
-            f1_segment_based_train_results[idx_run, idx_budget] = f1_segment_based_train
+            # save the dictionary to a file
+            with open(os.path.join(run_dir, 'event_based_train_metrics.yaml'), 'w') as f:
+                yaml.dump(event_based_train, f)
+            
+            with open(os.path.join(run_dir, 'segment_based_train_metrics.yaml'), 'w') as f:
+                yaml.dump(segment_based_train, f)
 
             # evaluate the test set prediction quality
-            f1_event_based_test, f1_segment_based_test = evaluate(test_file_list, t_collar=conf.t_collar)
+            event_based_test, segment_based_test = evaluate(test_file_list, t_collar=conf.t_collar, time_resolution=conf.time_resolution)
 
-            f1_event_based_test_results[idx_run, idx_budget]   = f1_event_based_test
-            f1_segment_based_test_results[idx_run, idx_budget] = f1_segment_based_test
-
-    np.save(os.path.join(conf.sim_dir, '{}_f1_event_based_train_results.npy'.format(conf.model_name)), f1_event_based_train_results)
-    np.save(os.path.join(conf.sim_dir, '{}_f1_segment_based_train_results.npy'.format(conf.model_name)), f1_segment_based_train_results)
-    np.save(os.path.join(conf.sim_dir, '{}_f1_event_based_test_results.npy'.format(conf.model_name)), f1_event_based_test_results)
-    np.save(os.path.join(conf.sim_dir, '{}_f1_segment_based_test_results.npy'.format(conf.model_name)), f1_segment_based_test_results)
-
-    print("segment-based : test = {}, train = {}".format(np.mean(f1_segment_based_test_results), np.mean(f1_segment_based_train_results)))
-    print("event-based   : test = {}, train = {}".format(np.mean(f1_event_based_test_results), np.mean(f1_event_based_train_results)))
+            # save the dictionary to a file
+            # run_dir/test_scores/prototypical/budget_1.0/'
+            with open(os.path.join(run_dir, 'test_scores', conf.model_name, budget_name, 'event_based_test_metrics.yaml'), 'w') as f:
+                yaml.dump(event_based_test, f)
+            
+            with open(os.path.join(run_dir, 'test_scores', conf.model_name, budget_name, 'segment_based_test_metrics.yaml'), 'w') as f:
+                yaml.dump(segment_based_test, f)
 
 # if __name__ == "__main__":
 #     main()

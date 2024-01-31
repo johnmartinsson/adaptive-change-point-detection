@@ -59,6 +59,8 @@ def run(conf):
     ################################################################################
 
     # TODO: check all runs, and only start from the ones that are missing ...
+    # conf.sim_dir contains directories [0, 1, 2, ...] for each run
+    # check which is the last run and start from there
     if not len(glob.glob(os.path.join(conf.sim_dir, '0', 'train_annotations', '*.tsv'))) == conf.n_soundscapes:
         print("Simulating active learning process ...")
         # TODO: move into own method
