@@ -1,7 +1,6 @@
 import run_simulation
 import config
 import concurrent.futures
-import functools
 
 class SearchSpace(object):
     def __init__(self):
@@ -15,9 +14,9 @@ def run_strategy(strategy_name): #, n_queriess, prominence_thresholds, coverage_
 
     # TODO: make a search space class
     # search space
-    n_queriess            = [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]
-    prominence_thresholds = [0.0] #, 0.1]
-    coverage_thresholds   = [0.05, 0.50, 0.95]
+    n_queriess            = [5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]
+    prominence_thresholds = [0.0]
+    coverage_thresholds   = [0.05, 0.25, 0.5, 0.75, 0.95]
     class_names           = ['me', 'dog', 'baby']
     model_names           = ['prototypical', 'mlp']
     n_runs                = 3
