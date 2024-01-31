@@ -1,8 +1,10 @@
 import os
 import yaml
+import pandas as pd
+import glob
 
 class Config():
-    def __init__(self):
+    def __init__(self, sim_dir=None):
         # Query strategy hyperparameters
         self.prominence_threshold = 0.0
 
@@ -33,7 +35,25 @@ class Config():
         self.model_name         = 'prototypical'
 
         # Evaluation hyperparameters
-        self.t_collar = 2.0
+        self.t_collar           = 2.0
+        self.time_resolution    = 0.05
+
+        # load the config from the given sim_dir
+        if sim_dir is not None:
+            self.load_config(sim_dir)
+
+    def pretty_print(self):
+        """ Print the config in a nice format """
+
+        # align the values to the right
+        max_len = max([len(attr) for attr in vars(self)])
+        print("-" * (max_len + 1 + 20))
+        print("Config:")
+        print("-" * (max_len + 1 + 20))
+        for attr in vars(self):
+            print("\t{:>{width}}: {}".format(attr, getattr(self, attr), width=max_len))
+        print("-" * (max_len + 1 + 20))
+        print("")
 
     def save_config(self):
         """ Save the config properties to a YAML file """
@@ -51,6 +71,100 @@ class Config():
             for attr in config_dict:
                 setattr(self, attr, config_dict[attr])
     
+    def load_config_yaml(self, yaml_file):
+        with open(yaml_file, 'r') as f:
+            config_dict = yaml.safe_load(f)
+
+            # set all attribute in self to the corresponding value in config_dict
+            for attr in config_dict:
+                setattr(self, attr, config_dict[attr])
+    
+    def load_test_results(self):
+        """ Load all the results from the results directory """
+
+        segment_based_dicts = []
+        event_based_dicts   = []
+
+        config_files = glob.glob(os.path.join(self.results_dir, '**', 'config.yaml'), recursive=True)
+
+        for config_file in config_files:
+            conf = Config()
+            conf.load_config_yaml(config_file)
+            
+            for idx_run in range(conf.n_runs):
+                for budget in conf.evaluation_budgets:
+                    budget_name = 'budget_{}'.format(budget)
+
+                    run_dir = os.path.join(conf.sim_dir, str(idx_run))
+
+                    # segment based
+                    with open(os.path.join(run_dir, 'test_scores', conf.model_name, budget_name, 'segment_based_test_metrics.yaml'), 'r') as f:
+                        segment_based_test = yaml.safe_load(f)
+                    
+                    setting_values = {attr: getattr(conf, attr) for attr in vars(conf)}
+                    
+                    result_names   = ['f_measure', 'precision', 'recall']
+
+                    result_values  = {result_name: segment_based_test['f_measure'][result_name] for result_name in result_names}
+                    run_and_budget = {'run': idx_run, 'budget': budget}
+                    dict_to_append = {**setting_values, **result_values, **run_and_budget}
+                    segment_based_dicts.append(dict_to_append)
+
+                    # event based
+                    with open(os.path.join(run_dir, 'test_scores', conf.model_name, budget_name, 'event_based_test_metrics.yaml'), 'r') as f:
+                        event_based_test = yaml.safe_load(f)
+
+                    result_values  = {result_name: event_based_test['f_measure'][result_name] for result_name in result_names}
+                    dict_to_append = {**setting_values, **result_values, **run_and_budget}
+                    event_based_dicts.append(dict_to_append)
+
+        segment_based_df = pd.DataFrame(segment_based_dicts)
+        event_based_df   = pd.DataFrame(event_based_dicts)
+
+        return event_based_df, segment_based_df
+
+    
+    def load_train_results(self):
+        """ Load all the results from the results directory """
+
+        segment_based_dicts = []
+        event_based_dicts   = []
+
+        config_files = glob.glob(os.path.join(self.results_dir, '**', 'config.yaml'), recursive=True)
+
+        for config_file in config_files:
+            conf = Config()
+            conf.load_config_yaml(config_file)
+            
+            for idx_run in range(conf.n_runs):
+                run_dir = os.path.join(conf.sim_dir, str(idx_run))
+
+                # segment based
+                with open(os.path.join(run_dir, 'segment_based_train_metrics.yaml'), 'r') as f:
+                    segment_based_test = yaml.safe_load(f)
+                
+                setting_values = {attr: getattr(conf, attr) for attr in vars(conf)}
+                
+                result_names   = ['f_measure', 'precision', 'recall']
+
+                result_values  = {result_name: segment_based_test['f_measure'][result_name] for result_name in result_names}
+                run_and_budget = {'run': idx_run}
+                dict_to_append = {**setting_values, **result_values, **run_and_budget}
+                segment_based_dicts.append(dict_to_append)
+
+                # event based
+                with open(os.path.join(run_dir, 'event_based_train_metrics.yaml'), 'r') as f:
+                    event_based_test = yaml.safe_load(f)
+
+                result_values  = {result_name: event_based_test['f_measure'][result_name] for result_name in result_names}
+                dict_to_append = {**setting_values, **result_values, **run_and_budget}
+                event_based_dicts.append(dict_to_append)
+
+        segment_based_df = pd.DataFrame(segment_based_dicts)
+        event_based_df   = pd.DataFrame(event_based_dicts)
+
+        return event_based_df, segment_based_df
+
     @property
     def budget_names(self):
         return ['budget_{}'.format(b) for b in self.evaluation_budgets]
