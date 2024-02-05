@@ -57,9 +57,9 @@ def test_metrics():
     print("----------------------------------------")
 
 
-def class_average_miou(events_ref, events_pred, n_classes):
+def class_average_matched_miou(events_ref, events_pred, event_labels, min_iou=0.000001):
     """
-        Compute the class average intersection-over-union (IOU) from a list of
+        Compute the class average matched mean intersection-over-union (IOU) from a list of
         reference and predicted events.
 
         Parameters
@@ -70,38 +70,38 @@ def class_average_miou(events_ref, events_pred, n_classes):
         events_pred : list of tuples
             A list of predicted events. Each event is a tuple of the form
             (start_time, end_time, label).
+        event_labels : list of strings
+            A list of the event labels.
 
         Returns
         -------
         miou : float
-            The class average intersection-over-union (IOU).
+            The class average matched mean intersection-over-union (IOU).
     """
 
     miou = 0.0
-    #for c in range(n_classes):
+    for event_label in range(event_labels):
 
-    event_labels = ['me', 'baby', 'dog']
+        events_ref_class  = [(e['onset'], e['offset']) for e in events_ref  if e['event_label'] == event_label]
+        events_pred_class = [(e['onset'], e['offset']) for e in events_pred if e['event_label'] == event_label]
 
-    events_ref_class  = [(e['onset'], e['offset']) for e in events_ref  if e['event_label'] in event_labels]
-    events_pred_class = [(e['onset'], e['offset']) for e in events_pred if e['event_label'] in event_labels]
+        if len(events_ref_class) == 0:
+            print("no references")
+            warnings.warn("No reference events found.")
+        if len(events_pred_class) == 0:
+            print("no events")
+            warnings.warn("No predicted events found.")
 
-    if len(events_ref_class) == 0:
-        print("no references")
-        warnings.warn("No reference events found.")
-    if len(events_pred_class) == 0:
-        print("no events")
-        warnings.warn("No predicted events found.")
+        if len(events_ref_class) == 0 and len(events_pred_class) == 0:
+            print("no events and no references")
+            warnings.warn("No events found, IOU set to 1.0")
+            return 1.0
 
-    if len(events_ref_class) == 0 and len(events_pred_class) == 0:
-        print("no events and no references")
-        warnings.warn("No events found, IOU set to 1.0")
-        return 1.0
+        miou_class = average_matched_iou(events_ref_class, events_pred_class, min_iou=min_iou)
 
-    miou_class = average_matched_iou(events_ref_class, events_pred_class, min_iou=0.000001)
+        miou += miou_class
 
-    miou += miou_class
-
-    return miou #/ n_classes
+    return miou / len(event_labels)
 
 def coverage(q1, q2):
     """
