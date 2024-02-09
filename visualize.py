@@ -264,3 +264,150 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
         #plt.cla()
         #plt.clf()
         #plt.close()
+
+
+def visualize_query_strategies(query_strategies, query_strategy_names, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, vis_ent=False, vis_embs_label=False, savefile=None, noise_factor=0, normalize=True, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0, coverage_threshold=0.05, prominence_threshold=0.0):
+    
+    oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise, coverage_threshold=coverage_threshold)
+    soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
+
+    fig, ax = plt.subplots(4, 1, figsize=(8,6))
+
+    for idx_strategy in range(len(query_strategies)):
+        query_strategy = query_strategies[idx_strategy]
+        query_strategy_name = query_strategy_names[idx_strategy]
+
+        timings, embeddings = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
+        pred_probas = query_strategy.predict_proba(embeddings, noise_factor=noise_factor)
+        if query_strategy.fixed_queries or query_strategy.emb_cpd or query_strategy.opt_queries:
+            pred_queries = query_strategy.predict_queries(base_dir, soundscape_basename, n_queries, prominence_threshold=prominence_threshold)
+        else:
+            pred_queries = models.queries_from_probas(pred_probas, timings, n_queries, soundscape_length, prominence_threshold=prominence_threshold)
+            pred_queries = sorted(pred_queries, key=lambda x: x[0])
+        print("method = {}, n_queries = {}".format(query_strategy_name, len(pred_queries)))
+
+        pred_pos_events = oracle.pos_events_from_queries(pred_queries, soundscape_basename)
+
+        _, _, embs_label = evaluate.get_embeddings_3(pred_pos_events, base_dir, soundscape_basename, emb_win_length)
+
+        ts_probas = np.mean(timings, axis=1)
+
+        opt_queries = qs.optimal_query_strategy(base_dir, soundscape_basename, soundscape_length)
+        #print("opt qs: ", opt_queries)
+        ref_pos_events = oracle.pos_events_from_queries(opt_queries, soundscape_basename)
+        #print("ref pos: ", ref_pos_events)
+
+        # extract Mel spectrogram
+        window_length = 0.025
+        wave, sr = librosa.load(os.path.join(base_dir, soundscape_basename + ".wav"))
+        mel_spectrogram = librosa.feature.melspectrogram(
+            y=wave,
+            sr=sr,
+            n_fft = utils.next_power_of_2(int(sr * window_length)),
+            hop_length = utils.next_power_of_2(int(sr * window_length)) // 2,
+        )
+        
+        ax[0].imshow(np.flip(np.log(mel_spectrogram + 1e-10), axis=0), aspect='auto')
+        ax[0].set_title("Spectrogram of 30 second soundscape")
+        ax[0].set_xticklabels([])
+        ax[0].set_yticklabels([])
+
+        probas = pred_probas.reshape((len(pred_probas), 1))
+        ds = cpd.distance_past_and_future_averages(
+            probas,
+            cpd.euclidean_distance_score, offset=0, M=1
+        )
+
+        if query_strategy.emb_cpd:
+            _, ds = cpd.change_point_detection_from_embeddings(
+                embeddings,
+                timings,
+                M = 1,
+                prominence = prominence_threshold,
+                n_peaks = n_queries-1,
+                distance_fn = cpd.cosine_distance_score,
+            )
+            #ds = ds/np.max(ds)
+
+
+
+        # peaks 
+        peaks = find_peaks(ds, prominence=prominence_threshold)
+        peak_indices     = peaks[0]
+        peak_prominences = peaks[1]['prominences']
+        peak_indices = sorted(utils.sort_by_rank(peak_prominences, peak_indices)[:n_queries-1])
+
+        #ax[idx_strategy + 1].set_title('Strategy = {}'.format(query_strategy_name))
+        ax[idx_strategy + 1].set_ylabel(query_strategy_name)
+
+        # if vis_embs_label:
+        #     ax[idx_strategy + 1].plot(ts_probas, embs_label, label='emb. label', color=colors[3])
+
+        if query_strategy_name in ['CPD', 'ADP']:
+            ax[idx_strategy + 1].plot(ts_probas[peak_indices], ds[peak_indices], "x", color="red", label='peaks')
+
+        if query_strategy_name in ['CPD', 'ADP']:
+            # latex style
+            ax[idx_strategy + 1].plot(ts_probas, ds, label=r'$g_{CPD}(\tau)$ / $g(\tau)$', color=colors[0])
+        #if query_strategy_name == 'ADP':
+        #    ax[idx_strategy + 1].plot(ts_probas, pred_probas, label='probas', color=colors[1])
+        # if vis_threshold:
+        #     ax[idx_strategy + 1].hlines([0.5], [0], [soundscape_length], color='red', linestyle='dashed')
+        #     ax[idx_strategy + 1].hlines([1.0], [0], [soundscape_length], color='green', linestyle='dashed')
+        if query_strategy_name in ['FIX', 'CPD']:
+            ax[idx_strategy+1].set_xticklabels([])
+        
+        ax[idx_strategy + 1].set_xlim(0, soundscape_length) #ts_probas[-1]
+        ax[idx_strategy + 1].set_ylim(0, 1.2)
+        if idx_strategy == 2:
+            ax[idx_strategy + 1].set_xlabel('time [s]')
+        #ax[idx_strategy + 1].set_ylabel('')
+
+        def plot_events(ax, events, color, label, ymax=1.0):
+            starts = [s for (s, _) in events]
+            ends   = [e for (_, e) in events]
+            heights = [ymax for _ in range(len(events))]
+            ax.vlines(starts + ends, ymin=0, ymax=ymax, color=color, label=label)
+            ax.hlines(heights, starts, ends, color=color)
+
+        def plot_queries(ax, queries, color, label):
+            # start of all queries
+            points = [s for (s, e) in queries]
+            # end of last query
+            points = points + [queries[-1][1]]
+            points[0] += 0.05
+            #points = [0.1] + points + [29.9]
+            ax.vlines(points, ymin=-0.2, ymax=1.2, color=color, label=label, linestyle='dashed')
+
+        # plot true event onsets and offsets
+        #if vis_true:
+            #print(ref_pos_events)
+        plot_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='reference labels', ymax=0.9)
+            #plot_queries(ax[1], opt_queries, color='magenta', label='reference queries')
+            #query_centers = [e - ((e - s) / 2) for (s, e) in opt_queries]
+            #for idx_q_c, q_c in enumerate(query_centers):
+            #    ax[1].text(x=q_c-0.3, y=1.25, s=r'$q_{}$'.format(idx_q_c))
+        
+
+        #if vis_label:
+        plot_events(ax[idx_strategy + 1], pred_pos_events, color='magenta', label='annotated labels', ymax=0.95)
+
+        #if vis_queries:
+        assert len(pred_queries) <= n_queries
+        if len(pred_queries) < n_queries:
+            warnings.warn("not using all queries: {}".format(len(pred_queries)))
+        plot_queries(ax[idx_strategy + 1], pred_queries, color='red', label='predicted queries')
+
+        query_centers = [e - ((e - s) / 2) for (s, e) in pred_queries]
+        for idx_q_c, q_c in enumerate(query_centers):
+            ax[idx_strategy + 1].text(x=q_c-0.3, y=1.05, s=r'$q_{}$'.format(idx_q_c))
+        
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.40), fancybox=True, shadow=False, ncol=3)
+
+    plt.tight_layout()
+
+    if savefile is not None:
+        plt.savefig(savefile, dpi=1200, bbox_inches='tight')
+        #plt.cla()
+        #plt.clf()
+        #plt.close()

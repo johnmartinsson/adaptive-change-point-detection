@@ -79,7 +79,7 @@ class Config():
             for attr in config_dict:
                 setattr(self, attr, config_dict[attr])
     
-    def load_test_results(self):
+    def load_test_results(self, model_name='prototypical'):
         """ Load all the results from the results directory """
 
         segment_based_dicts = []
@@ -90,6 +90,7 @@ class Config():
         for config_file in config_files:
             conf = Config()
             conf.load_config_yaml(config_file)
+            conf.model_name = model_name
             
             for idx_run in range(conf.n_runs):
                 for budget in conf.evaluation_budgets:
@@ -98,25 +99,33 @@ class Config():
                     run_dir = os.path.join(conf.sim_dir, str(idx_run))
 
                     # segment based
-                    with open(os.path.join(run_dir, 'test_scores', conf.model_name, budget_name, 'segment_based_test_metrics.yaml'), 'r') as f:
-                        segment_based_test = yaml.safe_load(f)
-                    
-                    setting_values = {attr: getattr(conf, attr) for attr in vars(conf)}
-                    
-                    result_names   = ['f_measure', 'precision', 'recall']
+                    segment_based_test_metrics_file = os.path.join(run_dir, 'test_scores', conf.model_name, budget_name, 'segment_based_test_metrics.yaml')
+                    if os.path.exists(segment_based_test_metrics_file):
+                        with open(segment_based_test_metrics_file, 'r') as f:
+                            segment_based_test = yaml.safe_load(f)
+                        
+                        setting_values = {attr: getattr(conf, attr) for attr in vars(conf)}
+                        
+                        result_names   = ['f_measure', 'precision', 'recall']
 
-                    result_values  = {result_name: segment_based_test['f_measure'][result_name] for result_name in result_names}
-                    run_and_budget = {'run': idx_run, 'budget': budget}
-                    dict_to_append = {**setting_values, **result_values, **run_and_budget}
-                    segment_based_dicts.append(dict_to_append)
+                        result_values  = {result_name: segment_based_test['f_measure'][result_name] for result_name in result_names}
+                        run_and_budget = {'run': idx_run, 'budget': budget}
+                        dict_to_append = {**setting_values, **result_values, **run_and_budget}
+                        segment_based_dicts.append(dict_to_append)
+                    else:
+                        print("File not found: {}".format(segment_based_test_metrics_file))
 
                     # event based
-                    with open(os.path.join(run_dir, 'test_scores', conf.model_name, budget_name, 'event_based_test_metrics.yaml'), 'r') as f:
-                        event_based_test = yaml.safe_load(f)
+                    event_based_test_metrics_file = os.path.join(run_dir, 'test_scores', conf.model_name, budget_name, 'event_based_test_metrics.yaml')
+                    if os.path.exists(event_based_test_metrics_file):
+                        with open(event_based_test_metrics_file, 'r') as f:
+                            event_based_test = yaml.safe_load(f)
 
-                    result_values  = {result_name: event_based_test['f_measure'][result_name] for result_name in result_names}
-                    dict_to_append = {**setting_values, **result_values, **run_and_budget}
-                    event_based_dicts.append(dict_to_append)
+                        result_values  = {result_name: event_based_test['f_measure'][result_name] for result_name in result_names}
+                        dict_to_append = {**setting_values, **result_values, **run_and_budget}
+                        event_based_dicts.append(dict_to_append)
+                    else:
+                        print("File not found: {}".format(event_based_test_metrics_file))
 
         segment_based_df = pd.DataFrame(segment_based_dicts)
         event_based_df   = pd.DataFrame(event_based_dicts)
@@ -124,7 +133,7 @@ class Config():
         return event_based_df, segment_based_df
 
     
-    def load_train_results(self):
+    def load_train_results(self, model_name='prototypical'):
         """ Load all the results from the results directory """
 
         segment_based_dicts = []
@@ -135,30 +144,37 @@ class Config():
         for config_file in config_files:
             conf = Config()
             conf.load_config_yaml(config_file)
+            conf.model_name = model_name
             
             for idx_run in range(conf.n_runs):
                 run_dir = os.path.join(conf.sim_dir, str(idx_run))
 
                 # segment based
-                with open(os.path.join(run_dir, 'segment_based_train_metrics.yaml'), 'r') as f:
-                    segment_based_test = yaml.safe_load(f)
-                
-                setting_values = {attr: getattr(conf, attr) for attr in vars(conf)}
-                
-                result_names   = ['f_measure', 'precision', 'recall']
+                if os.path.exists(os.path.join(run_dir, 'segment_based_train_metrics.yaml')):
+                    with open(os.path.join(run_dir, 'segment_based_train_metrics.yaml'), 'r') as f:
+                        segment_based_test = yaml.safe_load(f)
+                    
+                    setting_values = {attr: getattr(conf, attr) for attr in vars(conf)}
+                    
+                    result_names   = ['f_measure', 'precision', 'recall']
 
-                result_values  = {result_name: segment_based_test['f_measure'][result_name] for result_name in result_names}
-                run_and_budget = {'run': idx_run}
-                dict_to_append = {**setting_values, **result_values, **run_and_budget}
-                segment_based_dicts.append(dict_to_append)
+                    result_values  = {result_name: segment_based_test['f_measure'][result_name] for result_name in result_names}
+                    run_and_budget = {'run': idx_run}
+                    dict_to_append = {**setting_values, **result_values, **run_and_budget}
+                    segment_based_dicts.append(dict_to_append)
+                else:
+                    print("File not found: {}".format(os.path.join(run_dir, 'segment_based_train_metrics.yaml')))
 
                 # event based
-                with open(os.path.join(run_dir, 'event_based_train_metrics.yaml'), 'r') as f:
-                    event_based_test = yaml.safe_load(f)
+                if os.path.exists(os.path.join(run_dir, 'event_based_train_metrics.yaml')):
+                    with open(os.path.join(run_dir, 'event_based_train_metrics.yaml'), 'r') as f:
+                        event_based_test = yaml.safe_load(f)
 
-                result_values  = {result_name: event_based_test['f_measure'][result_name] for result_name in result_names}
-                dict_to_append = {**setting_values, **result_values, **run_and_budget}
-                event_based_dicts.append(dict_to_append)
+                    result_values  = {result_name: event_based_test['f_measure'][result_name] for result_name in result_names}
+                    dict_to_append = {**setting_values, **result_values, **run_and_budget}
+                    event_based_dicts.append(dict_to_append)
+                else:
+                    print("File not found: {}".format(os.path.join(run_dir, 'event_based_train_metrics.yaml')))
 
         segment_based_df = pd.DataFrame(segment_based_dicts)
         event_based_df   = pd.DataFrame(event_based_dicts)
