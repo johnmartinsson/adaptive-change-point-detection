@@ -14,13 +14,13 @@ def run_strategy(strategy_name): #, n_queriess, prominence_thresholds, coverage_
 
     # TODO: make a search space class
     # search space
-    n_queriess            = [5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25]
+    n_queriess            = [7] #, 15, 17, 19, 21, 23, 25]
     prominence_thresholds = [0.0]
-    coverage_thresholds   = [0.05, 0.25, 0.5, 0.75, 0.95]
+    coverage_thresholds   = [0.5] #0.05, 0.25, 0.5, 0.75, 0.95]
     class_names           = ['me', 'dog', 'baby']
     model_names           = ['prototypical', 'mlp']
-    n_runs                = 3
-    results_dir           = '/mnt/storage_1/john/al_for_sed_results/2024-01-31'
+    n_runs                = 15
+    results_dir           = '/mnt/storage_1/john/al_for_sed_results/2024-02-08'
     noises                = [0.0, 0.2]
     
     conf.results_dir = results_dir

@@ -149,3 +149,5 @@ dmypy.json
 notebooks
 *.swp
 old_results/
+figures
+figures_same
