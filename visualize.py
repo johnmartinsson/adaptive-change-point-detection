@@ -271,7 +271,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
     oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise, coverage_threshold=coverage_threshold)
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
 
-    fig, ax = plt.subplots(4, 1, figsize=(8,6))
+    fig, ax = plt.subplots(4, 1, figsize=(5,4))
 
     for idx_strategy in range(len(query_strategies)):
         query_strategy = query_strategies[idx_strategy]
@@ -308,7 +308,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
         )
         
         ax[0].imshow(np.flip(np.log(mel_spectrogram + 1e-10), axis=0), aspect='auto')
-        ax[0].set_title("Spectrogram of 30 second soundscape")
+        ax[0].set_title("Soundscape with baby cries")
         ax[0].set_xticklabels([])
         ax[0].set_yticklabels([])
 
@@ -342,19 +342,36 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
 
         # if vis_embs_label:
         #     ax[idx_strategy + 1].plot(ts_probas, embs_label, label='emb. label', color=colors[3])
+        def plot_queries(ax, queries, color, label):
+            # start of all queries
+            points = [s for (s, e) in queries]
+            # end of last query
+            points = points + [queries[-1][1]]
+            points[0] += 0.05
+            #points = [0.1] + points + [29.9]
+            ax.vlines(points, ymin=-0.2, ymax=1.2, color=color, label=label, linestyle='dashed')
 
-        if query_strategy_name in ['CPD', 'ADP']:
-            ax[idx_strategy + 1].plot(ts_probas[peak_indices], ds[peak_indices], "x", color="red", label='peaks')
+        #if vis_queries:
+        assert len(pred_queries) <= n_queries
+        if len(pred_queries) < n_queries:
+            warnings.warn("not using all queries: {}".format(len(pred_queries)))
+        plot_queries(ax[idx_strategy + 1], pred_queries, color='red', label='queries')
+
+
 
         if query_strategy_name in ['CPD', 'ADP']:
             # latex style
             ax[idx_strategy + 1].plot(ts_probas, ds, label=r'$g_{CPD}(\tau)$ / $g(\tau)$', color=colors[0])
-        #if query_strategy_name == 'ADP':
-        #    ax[idx_strategy + 1].plot(ts_probas, pred_probas, label='probas', color=colors[1])
+
+        if query_strategy_name in ['CPD', 'ADP']:
+            ax[idx_strategy + 1].plot(ts_probas[peak_indices], ds[peak_indices], "x", color="red", label='peaks')
+
+        if query_strategy_name == 'ADP':
+            ax[idx_strategy + 1].plot(ts_probas, pred_probas, label='probas', color=colors[1])
         # if vis_threshold:
         #     ax[idx_strategy + 1].hlines([0.5], [0], [soundscape_length], color='red', linestyle='dashed')
         #     ax[idx_strategy + 1].hlines([1.0], [0], [soundscape_length], color='green', linestyle='dashed')
-        if query_strategy_name in ['FIX', 'CPD']:
+        if query_strategy_name in ['ADP', 'CPD']:
             ax[idx_strategy+1].set_xticklabels([])
         
         ax[idx_strategy + 1].set_xlim(0, soundscape_length) #ts_probas[-1]
@@ -370,19 +387,21 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
             ax.vlines(starts + ends, ymin=0, ymax=ymax, color=color, label=label)
             ax.hlines(heights, starts, ends, color=color)
 
-        def plot_queries(ax, queries, color, label):
-            # start of all queries
-            points = [s for (s, e) in queries]
-            # end of last query
-            points = points + [queries[-1][1]]
-            points[0] += 0.05
-            #points = [0.1] + points + [29.9]
-            ax.vlines(points, ymin=-0.2, ymax=1.2, color=color, label=label, linestyle='dashed')
+
+
+        def plot_shaded_events(ax, events, color, label, alpha=0.5):
+            for idx, (s, e) in enumerate(events):
+                if idx < len(events) - 1:
+                    ax.axvspan(s, e, color=color, alpha=alpha)
+                else:
+                    ax.axvspan(s, e, color=color, alpha=alpha, label=label)
+
 
         # plot true event onsets and offsets
         #if vis_true:
             #print(ref_pos_events)
-        plot_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='reference labels', ymax=0.9)
+        #if idx_strategy == 0:
+        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='truth', alpha=0.15)
             #plot_queries(ax[1], opt_queries, color='magenta', label='reference queries')
             #query_centers = [e - ((e - s) / 2) for (s, e) in opt_queries]
             #for idx_q_c, q_c in enumerate(query_centers):
@@ -390,21 +409,26 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
         
 
         #if vis_label:
-        plot_events(ax[idx_strategy + 1], pred_pos_events, color='magenta', label='annotated labels', ymax=0.95)
+        # define a method which plots the events from the list [(start, end), ...] as
+        # shaded areas in the plot, something like this:
+        # ax.axvspan(a[0], a[1], color='blue', alpha=alpha)
+        # highlight the start and end
+        # ax.axvline(a[0], color='red', alpha=1.0)
+        # ax.axvline(a[1], color='red', alpha=1.0)
 
-        #if vis_queries:
-        assert len(pred_queries) <= n_queries
-        if len(pred_queries) < n_queries:
-            warnings.warn("not using all queries: {}".format(len(pred_queries)))
-        plot_queries(ax[idx_strategy + 1], pred_queries, color='red', label='predicted queries')
+
+        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='labels', alpha=0.15)
+
+
 
         query_centers = [e - ((e - s) / 2) for (s, e) in pred_queries]
         for idx_q_c, q_c in enumerate(query_centers):
-            ax[idx_strategy + 1].text(x=q_c-0.3, y=1.05, s=r'$q_{}$'.format(idx_q_c))
+            ax[idx_strategy + 1].text(x=q_c-0.3, y=1.0, s=r'$q_{}$'.format(idx_q_c))
         
-    plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.40), fancybox=True, shadow=False, ncol=3)
+        #if query_strategy_name == 'ADP':
 
-    plt.tight_layout()
+    plt.tight_layout()    
+    ax[1].legend(loc='upper center', bbox_to_anchor=(0.5, -3.6), fancybox=True, shadow=False, ncol=3)
 
     if savefile is not None:
         plt.savefig(savefile, dpi=1200, bbox_inches='tight')
