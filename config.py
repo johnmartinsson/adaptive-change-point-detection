@@ -28,7 +28,8 @@ class Config():
         self.class_name           = 'baby'
         self.snr                  = 0.0
         self.results_dir          = 'results/default'
-        self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed/'
+        #self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed/'
+        self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed_2024_02_22/'
 
         # Prediction hyperparameters
         self.evaluation_budgets = [1.0]

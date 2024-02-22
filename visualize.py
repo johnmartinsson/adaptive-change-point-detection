@@ -18,14 +18,16 @@ import matplotlib.gridspec as gridspec
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
 
-def plot_shaded_events(ax, events, color, label, alpha=0.5, truth=False):
+def plot_shaded_events(ax, events, color, label, alpha=0.5):
+    if label == 'truth':
+        hatch = '//'
+    else:
+        hatch = None #'\\\\'
     for idx, (s, e) in enumerate(events):
         if idx < len(events) - 1:
-            if truth:
-                ax.axvspan(s, e, color=color, alpha=alpha, hatch='//')
+            ax.axvspan(s, e, color=color, alpha=alpha, hatch=hatch)
         else:
-            if truth:
-                ax.axvspan(s, e, color=color, alpha=alpha, label=label, hatch='//')
+            ax.axvspan(s, e, color=color, alpha=alpha, label=label, hatch=hatch)
 
 def plot_queries(ax, queries, color, label):
     # start of all queries
@@ -271,7 +273,15 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
     oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise, coverage_threshold=coverage_threshold)
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
 
-    fig, ax = plt.subplots(4, 1, figsize=(5,4))
+    #fig, ax = plt.subplots(4, 1, figsize=(5,4))
+
+    gs = gridspec.GridSpec(nrows=4, ncols=1, height_ratios=[2, 1, 1, 1])
+    fig = plt.figure(figsize=(5.0,2.5))  # Define the figure size here
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
+    ax3 = plt.subplot(gs[2])
+    ax4 = plt.subplot(gs[3])
+    ax = [ax1, ax2, ax3, ax4]
 
     for idx_strategy in range(len(query_strategies)):
         query_strategy = query_strategies[idx_strategy]
@@ -348,7 +358,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
 
         if query_strategy_name in ['CPD', 'ADP']:
             # latex style
-            ax[idx_strategy + 1].plot(ts_probas, ds, label=r'$g_{CPD}(\tau)$ / $g(\tau)$', color=colors[0])
+            ax[idx_strategy + 1].plot(ts_probas, ds, label=r'$g_{CPD}(t)$ / $g(t)$', color=colors[0])
 
         if query_strategy_name in ['CPD', 'ADP']:
             ax[idx_strategy + 1].plot(ts_probas[peak_indices], ds[peak_indices], "x", color="red", label='peaks')
@@ -356,15 +366,15 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
         if query_strategy_name == 'ADP':
             ax[idx_strategy + 1].plot(ts_probas, pred_probas, label='probas', color=colors[1])
 
-        if query_strategy_name in ['ADP', 'CPD']:
+        if query_strategy_name in ['ADP', 'CPD', 'FIX']:
             ax[idx_strategy+1].set_xticklabels([])
         
         ax[idx_strategy + 1].set_xlim(0, soundscape_length) #ts_probas[-1]
         ax[idx_strategy + 1].set_ylim(0, 1.2)
         if idx_strategy == 2:
-            ax[idx_strategy + 1].set_xlabel('time [s]')
+            ax[idx_strategy + 1].set_xlabel('time')
 
-        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='truth', alpha=0.15)
+        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='truth', alpha=0.20)
 
         plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='labels', alpha=0.15)
 
@@ -372,12 +382,13 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
 
         query_centers = [e - ((e - s) / 2) for (s, e) in pred_queries]
         for idx_q_c, q_c in enumerate(query_centers):
-            ax[idx_strategy + 1].text(x=q_c-0.3, y=1.0, s=r'$q_{}$'.format(idx_q_c))
+            if not ((query_strategy_name == 'ADP' and idx_q_c == 2) or (query_strategy_name == 'CPD' and idx_q_c == 5)):
+                ax[idx_strategy + 1].text(x=q_c-0.3, y=0.5, s=r'$q_{}$'.format(idx_q_c))
         
         #if query_strategy_name == 'ADP':
 
-    plt.tight_layout()    
-    ax[1].legend(loc='upper center', bbox_to_anchor=(0.5, -3.6), fancybox=True, shadow=False, ncol=3)
+#    plt.tight_layout()
+    ax[1].legend(loc='upper center', bbox_to_anchor=(0.5, -3.2), fancybox=True, shadow=False, ncol=3)
 
     if savefile is not None:
         plt.savefig(savefile, dpi=1200, bbox_inches='tight')
@@ -476,13 +487,15 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
         if idx_strategy == 2:
             ax[idx_strategy + 1].set_xlabel('time [s]')
 
-        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='truth', alpha=0.15)
+        # truth
+        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='truth', alpha=0.20)
 
+        # annotations
         plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='labels', alpha=0.15)
 
         query_centers = [e - ((e - s) / 2) for (s, e) in pred_queries]
         for idx_q_c, q_c in enumerate(query_centers):
-            ax[idx_strategy + 1].text(x=q_c-0.60, y=0.3, s=r'$q_{}$'.format(idx_q_c))
+            ax[idx_strategy + 1].text(x=q_c-0.60, y=0.4, s=r'$q_{}$'.format(idx_q_c))
         
         #if query_strategy_name == 'ADP':
 
