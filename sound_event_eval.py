@@ -98,7 +98,9 @@ def evaluate(file_pair_list, t_collar=0.200, time_resolution=0.01):
     event_labels = all_data.unique_event_labels
 
     # TODO: make sure sensible settings are used
+    #print("time_resolution: ", time_resolution)
     segment_based_metrics = sed_eval.sound_event.SegmentBasedMetrics(event_labels, time_resolution=time_resolution)
+    #print("t_collar: ", t_collar)
     event_based_metrics   = sed_eval.sound_event.EventBasedMetrics(event_labels, t_collar=t_collar)
 
     # TODO: understand how results are accumulated, is it an online average over all files?
@@ -165,11 +167,13 @@ def evaluate_test_and_train(conf):
             train_file_list, test_file_list = load_file_pair_lists(conf.train_base_dir, conf.test_base_dir, conf.sim_dir, conf.strategy_name, conf.model_name, idx_run, budget_name)
 
             run_dir = os.path.join(conf.sim_dir, str(idx_run))
+            #print("run_dir: ", run_dir)
 
             # evaluate the training set label quality
             # TODO: I need to re-think this evaluation
             event_based_train, segment_based_train = evaluate(train_file_list, t_collar=conf.t_collar, time_resolution=conf.time_resolution)
 
+            #print("event_based_train: ", event_based_train)
             # save the dictionary to a file
             with open(os.path.join(run_dir, 'event_based_train_metrics.yaml'), 'w') as f:
                 yaml.dump(event_based_train, f)

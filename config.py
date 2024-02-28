@@ -9,7 +9,7 @@ class Config():
         self.prominence_threshold = 0.0
 
         # Oracle hyperparamters
-        self.coverage_threshold = 0.05
+        self.coverage_threshold = 0.5
 
         # Simulation hyperparameters
         self.n_soundscapes        = 300
@@ -18,7 +18,7 @@ class Config():
         self.emb_win_length       = 1.0
         self.fp_noise             = 0.0
         self.fn_noise             = 0.0
-        self.strategy_name        = 'CPD'
+        self.strategy_name        = 'OPT'
         self.normal_prototypes    = True
         self.normalize_embeddings = True
         self.noise_factor         = 0.0
@@ -27,7 +27,7 @@ class Config():
         # Data hyperparameters
         self.class_name           = 'baby'
         self.snr                  = 0.0
-        self.results_dir          = 'results/default'
+        self.results_dir          = 'results/test-2024-02-23'
         #self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed/'
         self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed_2024_02_22/'
 

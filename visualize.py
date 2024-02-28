@@ -268,7 +268,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
     if savefile is not None:
         plt.savefig(savefile, bbox_inches='tight')
 
-def visualize_query_strategies(query_strategies, query_strategy_names, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, vis_ent=False, vis_embs_label=False, savefile=None, noise_factor=0, normalize=True, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0, coverage_threshold=0.05, prominence_threshold=0.0):
+def visualize_query_strategies(query_strategies, query_strategy_names, new_query_strategy_names, soundscape_basename, base_dir, n_queries=7, vis_probs=True, vis_queries=True, vis_threshold=True, vis_cpd=True, vis_label=True, vis_peaks=True, vis_true=True, vis_ent=False, vis_embs_label=False, savefile=None, noise_factor=0, normalize=True, emb_win_length=1.0, fp_noise=0.0, fn_noise=0.0, coverage_threshold=0.05, prominence_threshold=0.0):
     
     oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise, coverage_threshold=coverage_threshold)
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
@@ -276,7 +276,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
     #fig, ax = plt.subplots(4, 1, figsize=(5,4))
 
     gs = gridspec.GridSpec(nrows=4, ncols=1, height_ratios=[2, 1, 1, 1])
-    fig = plt.figure(figsize=(5.0,2.5))  # Define the figure size here
+    fig = plt.figure(figsize=(5.0,3.0))  # Define the figure size here
     ax1 = plt.subplot(gs[0])
     ax2 = plt.subplot(gs[1])
     ax3 = plt.subplot(gs[2])
@@ -345,7 +345,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
         peak_prominences = peaks[1]['prominences']
         peak_indices = sorted(utils.sort_by_rank(peak_prominences, peak_indices)[:n_queries-1])
 
-        ax[idx_strategy + 1].set_ylabel(query_strategy_name)
+        ax[idx_strategy + 1].set_ylabel(new_query_strategy_names[idx_strategy])
 
 
         #if vis_queries:
@@ -358,7 +358,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
 
         if query_strategy_name in ['CPD', 'ADP']:
             # latex style
-            ax[idx_strategy + 1].plot(ts_probas, ds, label=r'$g_{CPD}(t)$ / $g(t)$', color=colors[0])
+            ax[idx_strategy + 1].plot(ts_probas, ds, label=r'$g_{ADP}(t)$ / $g_{FIX}(t)$', color=colors[0])
 
         if query_strategy_name in ['CPD', 'ADP']:
             ax[idx_strategy + 1].plot(ts_probas[peak_indices], ds[peak_indices], "x", color="red", label='peaks')
@@ -382,7 +382,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, soundscap
 
         query_centers = [e - ((e - s) / 2) for (s, e) in pred_queries]
         for idx_q_c, q_c in enumerate(query_centers):
-            if not ((query_strategy_name == 'ADP' and idx_q_c == 2) or (query_strategy_name == 'CPD' and idx_q_c == 5)):
+            if not (query_strategy_name == 'ADP' and idx_q_c == 4): # or (query_strategy_name == 'CPD' and idx_q_c == 5)):
                 ax[idx_strategy + 1].text(x=q_c-0.3, y=0.5, s=r'$q_{}$'.format(idx_q_c))
         
         #if query_strategy_name == 'ADP':
@@ -401,7 +401,7 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
 
     gs = gridspec.GridSpec(nrows=3, ncols=1, height_ratios=[2, 1, 1])
-    fig = plt.figure(figsize=(5.0,2.0))  # Define the figure size here
+    fig = plt.figure(figsize=(5.0,2.4))  # Define the figure size here
     ax1 = plt.subplot(gs[0])
     ax2 = plt.subplot(gs[1])
     ax3 = plt.subplot(gs[2])
