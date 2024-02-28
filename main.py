@@ -20,7 +20,7 @@ def run_strategy(strategy_name): #, n_queriess, prominence_thresholds, coverage_
     class_names           = ['me', 'dog', 'baby']
     model_names           = ['prototypical', 'mlp']
     n_runs                = 10
-    results_dir           = '/mnt/storage_1/john/al_for_sed_results/2024-02-22'
+    results_dir           = '/mnt/storage_1/john/al_for_sed_results/2024-02-24'
     noises                = [0.0, 0.2]
     
     conf.results_dir = results_dir
