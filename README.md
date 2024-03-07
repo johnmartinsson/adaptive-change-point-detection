@@ -25,18 +25,17 @@ Check the requirements.txt for the requirements. In particular we need:
 
 Scaper is used to generate the soundscapes using the source data, and BirdNET-Analyser is used to pre-compute the embeddings that the method works on.
 
-# Doit.sh
+# Run simulations / experiments
 
-If everything is setup properly you should be able to run everything by simply writing:
+If everything is setup properly you should be able to run everything by simply writing: test
 
-        bash doit.sh
+        python main.py
 
-If this does not work, it can at least be used as documentation on the order in which scripts need to be run. Basically:
+this should run
 
-    - data generation scripts,
-    - active learning simulation scripts,
-    - model training and prediction scripts, and
-    - evaluation of annotations and the predictions at test time.
+- active learning annotation simulation,
+- model training and prediction, and
+- evaluation of models trained with annotations.
 
 # Generate the dataset
 
