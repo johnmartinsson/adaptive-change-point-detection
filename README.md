@@ -1,10 +1,54 @@
-# Active learning for bioacoustics
+# From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning
 
-A repository containing an active learning framework for bioacoustics.
+A repository containing an annotaion framework for bioacoustics
+
 
 # Prerequisites
 
 ## Data
+
+The dataset can be downloaded from: https://github.com/johnmartinsson/bioacoustics-task
+
+TODO: write a script which downloads this and puts it into a default data folder
+
+## Environment
+Check the requirements.txt for the requirements. In particular we need:
+
+    - Scaper, and
+    - BirdNET-Analyser.
+
+Scaper is used to generate the soundscapes using the source data, and BirdNET-Analyser is used to pre-compute the embeddings that the method works on.
+
+## Pre-compute the embeddings
+
+TODO: last part of 
+
+    scripts/generate_scaper_data.sh
+
+# Run simulations / experiments
+
+TODO: update main script with proper default results folder
+
+If everything is setup properly you should be able to run everything by simply writing:
+
+        python main.py
+
+this should run
+
+- active learning annotation simulation,
+- model training and prediction, and
+- evaluation of models trained with annotations.
+
+# Produce figures and tables
+
+TODO: move relevant logic from notebook to a script which produces
+the tables and figures from default results folder
+
+# Generate the dataset
+
+TODO: describe how to generate the data in more detail.
+
+## Produce source files
 TODO: add the doi:s and links to the datasets.
 
     - NIGENS dataset,
@@ -17,32 +61,12 @@ In the ``produce_source_material.py'' you need to set the correct data paths:
         nigens_base_dir = '<path>/NIGENS/'
         dcase_base_dir  = '<path>/Development_Set/Validation_Set/ME/'
 
-## Environment
-Check the requirements.txt for the requirements. In particular we need:
+## Generate audio recordings
 
-    - Scaper, and
-    - BirdNET-Analyser.
-
-Scaper is used to generate the soundscapes using the source data, and BirdNET-Analyser is used to pre-compute the embeddings that the method works on.
-
-# Run simulations / experiments
-
-If everything is setup properly you should be able to run everything by simply writing: test
-
-        python main.py
-
-this should run
-
-- active learning annotation simulation,
-- model training and prediction, and
-- evaluation of models trained with annotations.
-
-# Generate the dataset
-
-TODO: describe how to generate the data in more detail.
+TODO:
 
 
-# Extract the embeddings
+## Extract the embeddings
 
 TODO: explain how to generate the embeddings in more detail.
 
@@ -53,12 +77,4 @@ Setup the BirdNET-Analyzer v2.4 (https://github.com/kahst/BirdNET-Analyzer).
 
 This will generate the embeddings for the train_soundscapes and the test_soundscapes and store them in the respective directory. Embeddings are for 3 second segments with the specified overlap.
     
-# Run simulations
 
-TODO: explain how to run the simulations in more detail.
-
-# Run predictions
-
-# Run evaluation
-
-# Produce figures and tables
