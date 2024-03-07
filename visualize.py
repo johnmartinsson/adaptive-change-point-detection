@@ -306,16 +306,25 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
         ref_pos_events = oracle.pos_events_from_queries(opt_queries, soundscape_basename)
 
         # extract Mel spectrogram
-        window_length = 0.025
+        window_length = 0.050
         wave, sr = librosa.load(os.path.join(base_dir, soundscape_basename + ".wav"))
         mel_spectrogram = librosa.feature.melspectrogram(
-            y=wave,
-            sr=sr,
-            n_fft = utils.next_power_of_2(int(sr * window_length)),
-            hop_length = utils.next_power_of_2(int(sr * window_length)) // 2,
+           y=wave,
+           sr=sr,
+           n_fft = utils.next_power_of_2(int(sr * window_length)),
+           hop_length = utils.next_power_of_2(int(sr * window_length)) // 2,
+           n_mels=128
         )
+
+        #S = librosa.feature.melspectrogram(y=wave, sr=sr, n_fft=2048, hop_length=512, n_mels=128)
+        S_DB = librosa.power_to_db(mel_spectrogram, ref=np.max)
+        #librosa.display.specshow(S_DB, sr=sr, x_axis='time', y_axis='mel', ax=ax[0])
+        ax[0].set_xlabel('')
         
-        ax[0].imshow(np.flip(np.log(mel_spectrogram + 1e-10), axis=0), aspect='auto')
+        to_plot = np.flip(np.log(mel_spectrogram + 1e-4), axis=0)
+        print(to_plot.shape)
+        to_plot = to_plot[0:96, :]
+        ax[0].imshow(to_plot, aspect='auto', cmap='Greys')
         ax[0].set_title("Audio recording with baby cries")
         ax[0].set_xticklabels([])
         ax[0].set_yticklabels([])
@@ -374,9 +383,9 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
         if idx_strategy == 2:
             ax[idx_strategy + 1].set_xlabel('time')
 
-        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='target events', alpha=0.20)
+        plot_shaded_events(ax[idx_strategy + 1], [(0, 0)], color=colors[2], label='target events', alpha=0.30)
 
-        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='annotations', alpha=0.15)
+        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='annotations', alpha=0.30)
 
 
 
@@ -388,7 +397,18 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
         #if query_strategy_name == 'ADP':
 
 #    plt.tight_layout()
+
+    # Create an additional axes that spans the entire figure
+    ax_top = fig.add_axes(ax[0].get_position())
+    ax_top.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    plot_shaded_events(ax_top, ref_pos_events, color=colors[2], label='target events', alpha=0.30)
+    #print(ref_pos_events)
+    ax_top.set_xlim(0, soundscape_length)
+    # Hide the full axes to make the subplots visible
+    ax_top.patch.set_visible(False)
+
     ax[1].legend(loc='upper center', bbox_to_anchor=(0.5, -3.2), fancybox=True, shadow=False, ncol=3)
+    #ax_top.legend(loc='upper center', bbox_to_anchor=(0.5, -3.2), fancybox=True, shadow=False, ncol=3)
 
     if savefile is not None:
         plt.savefig(savefile, dpi=1200, bbox_inches='tight')
@@ -431,19 +451,29 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
         ref_pos_events = oracle.pos_events_from_queries(opt_queries, soundscape_basename)
 
         # extract Mel spectrogram
-        window_length = 0.025
+        window_length = 0.050
         wave, sr = librosa.load(os.path.join(base_dir, soundscape_basename + ".wav"))
         mel_spectrogram = librosa.feature.melspectrogram(
-            y=wave,
-            sr=sr,
-            n_fft = utils.next_power_of_2(int(sr * window_length)),
-            hop_length = utils.next_power_of_2(int(sr * window_length)) // 2,
+           y=wave,
+           sr=sr,
+           n_fft = utils.next_power_of_2(int(sr * window_length)),
+           hop_length = utils.next_power_of_2(int(sr * window_length)) // 2,
+           n_mels=128
         )
+
+        #S = librosa.feature.melspectrogram(y=wave, sr=sr, n_fft=2048, hop_length=512, n_mels=128)
+        S_DB = librosa.power_to_db(mel_spectrogram, ref=np.max)
+        #librosa.display.specshow(S_DB, sr=sr, x_axis='time', y_axis='mel', ax=ax[0])
+        ax[0].set_xlabel('')
         
-        ax[0].imshow(np.flip(np.log(mel_spectrogram + 1e-10), axis=0), aspect='auto')
+        to_plot = np.flip(np.log(mel_spectrogram + 1e-4), axis=0)
+        print(to_plot.shape)
+        to_plot = to_plot[0:96, :]
+        ax[0].imshow(to_plot, aspect='auto', cmap='Greys')
         ax[0].set_title("Audio recording with baby cries")
         ax[0].set_xticklabels([])
         ax[0].set_yticklabels([])
+
 
         probas = pred_probas.reshape((len(pred_probas), 1))
         ds = cpd.distance_past_and_future_averages(
@@ -489,10 +519,10 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
             ax[idx_strategy + 1].set_xlabel('time [s]')
 
         # truth
-        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='target events', alpha=0.20)
+        plot_shaded_events(ax[idx_strategy + 1], [(0, 0)], color=colors[2], label='target events', alpha=0.30)
 
         # annotations
-        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='annotations', alpha=0.15)
+        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='annotations', alpha=0.30)
 
         query_centers = [e - ((e - s) / 2) for (s, e) in pred_queries]
         for idx_q_c, q_c in enumerate(query_centers):
@@ -501,6 +531,13 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
         
         #if query_strategy_name == 'ADP':
 
+    ax_top = fig.add_axes(ax[0].get_position())
+    ax_top.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
+    plot_shaded_events(ax_top, ref_pos_events, color=colors[2], label='target events', alpha=0.30)
+    #print(ref_pos_events)
+    ax_top.set_xlim(0, soundscape_length)
+    # Hide the full axes to make the subplots visible
+    ax_top.patch.set_visible(False)
     
     ax[1].legend(loc='upper center', bbox_to_anchor=(0.5, -1.5), fancybox=True, shadow=False, ncol=4)
     for idx in range(3):
