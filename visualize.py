@@ -275,8 +275,8 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
 
     #fig, ax = plt.subplots(4, 1, figsize=(5,4))
 
-    gs = gridspec.GridSpec(nrows=4, ncols=1, height_ratios=[2, 1, 1, 1])
-    fig = plt.figure(figsize=(5.0,3.0))  # Define the figure size here
+    gs = gridspec.GridSpec(nrows=4, ncols=1, height_ratios=[1, 1, 1, 1])
+    fig = plt.figure(figsize=(5.0,4*0.6))  # Define the figure size here
     ax1 = plt.subplot(gs[0])
     ax2 = plt.subplot(gs[1])
     ax3 = plt.subplot(gs[2])
@@ -316,7 +316,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
         )
         
         ax[0].imshow(np.flip(np.log(mel_spectrogram + 1e-10), axis=0), aspect='auto')
-        ax[0].set_title("Soundscape with baby cries")
+        ax[0].set_title("Audio recording with baby cries")
         ax[0].set_xticklabels([])
         ax[0].set_yticklabels([])
 
@@ -358,7 +358,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
 
         if query_strategy_name in ['CPD', 'ADP']:
             # latex style
-            ax[idx_strategy + 1].plot(ts_probas, ds, label=r'$g_{ADP}(t)$ / $g_{FIX}(t)$', color=colors[0])
+            ax[idx_strategy + 1].plot(ts_probas, ds, label=r'$g_{\text{A-CPD}}(t)$ / $g_{\text{F-CPD}}(t)$', color=colors[0])
 
         if query_strategy_name in ['CPD', 'ADP']:
             ax[idx_strategy + 1].plot(ts_probas[peak_indices], ds[peak_indices], "x", color="red", label='peaks')
@@ -374,9 +374,9 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
         if idx_strategy == 2:
             ax[idx_strategy + 1].set_xlabel('time')
 
-        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='truth', alpha=0.20)
+        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='target events', alpha=0.20)
 
-        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='labels', alpha=0.15)
+        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='annotations', alpha=0.15)
 
 
 
@@ -400,8 +400,9 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
     oracle = oracles.WeakLabelOracle(base_dir, fp_noise=fp_noise, fn_noise=fn_noise, coverage_threshold=coverage_threshold)
     soundscape_length = qs.get_soundscape_length(base_dir, soundscape_basename)
 
-    gs = gridspec.GridSpec(nrows=3, ncols=1, height_ratios=[2, 1, 1])
-    fig = plt.figure(figsize=(5.0,2.4))  # Define the figure size here
+    # 0.6 per row
+    gs = gridspec.GridSpec(nrows=3, ncols=1, height_ratios=[1, 1, 1])
+    fig = plt.figure(figsize=(5.0,3*0.6))  # Define the figure size here
     ax1 = plt.subplot(gs[0])
     ax2 = plt.subplot(gs[1])
     ax3 = plt.subplot(gs[2])
@@ -440,7 +441,7 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
         )
         
         ax[0].imshow(np.flip(np.log(mel_spectrogram + 1e-10), axis=0), aspect='auto')
-        ax[0].set_title("Soundscape with baby cries")
+        ax[0].set_title("Audio recording with baby cries")
         ax[0].set_xticklabels([])
         ax[0].set_yticklabels([])
 
@@ -488,14 +489,15 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
             ax[idx_strategy + 1].set_xlabel('time [s]')
 
         # truth
-        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='truth', alpha=0.20)
+        plot_shaded_events(ax[idx_strategy + 1], ref_pos_events, color=colors[2], label='target events', alpha=0.20)
 
         # annotations
-        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='labels', alpha=0.15)
+        plot_shaded_events(ax[idx_strategy + 1], pred_pos_events, color=colors[3], label='annotations', alpha=0.15)
 
         query_centers = [e - ((e - s) / 2) for (s, e) in pred_queries]
         for idx_q_c, q_c in enumerate(query_centers):
-            ax[idx_strategy + 1].text(x=q_c-0.60, y=0.4, s=r'$q_{}$'.format(idx_q_c))
+            if not (idx_strategy == 0 and idx_q_c == 4):
+                ax[idx_strategy + 1].text(x=q_c-0.60, y=0.4, s=r'$q_{}$'.format(idx_q_c))
         
         #if query_strategy_name == 'ADP':
 
