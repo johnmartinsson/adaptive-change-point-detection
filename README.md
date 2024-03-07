@@ -11,6 +11,8 @@ The dataset can be downloaded from: https://github.com/johnmartinsson/bioacousti
 
 TODO: write a script which downloads this and puts it into a default data folder
 
+TODO: upload the pre-computed embeddings.
+
 ## Environment
 Check the requirements.txt for the requirements. In particular we need:
 
