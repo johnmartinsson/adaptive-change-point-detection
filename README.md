@@ -1,4 +1,7 @@
 # From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning
+TODO: add primary method image
+TODO: remove or move unused scrips, currently you have to scroll for the README.
+
 
 A repository containing an annotaion framework for bioacoustics
 
