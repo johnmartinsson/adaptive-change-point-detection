@@ -46,8 +46,11 @@ this should run
 
 # Produce figures and tables
 
-TODO: move relevant logic from notebook to a script which produces
-the tables and figures from default results folder
+    # produces all tables in the paper
+    python tables.py
+
+    # produces all figures in the paper
+    python figures.py
 
 # Generate the dataset
 
