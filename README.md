@@ -5,16 +5,44 @@ TODO: remove or move unused scrips, currently you have to scroll for the README.
 
 A repository containing an annotaion framework for bioacoustics
 
+# Produce figures and tables
+    # download the experiments
+    # TODO
+    wget .../experiments.zip
 
-# Prerequisites
+    # produces all tables in the paper
+    python tables.py
 
-## Data
+    # produces all figures in the paper
+    python figures.py
+
+
+# Run experiments on the used data
+## Download data and pre-computed embeddings
 
 The dataset can be downloaded from: https://github.com/johnmartinsson/bioacoustics-task
 
+TODO: upload dataset and pre-computed embeddings to Zenodo or GitHub
 TODO: write a script which downloads this and puts it into a default data folder
 
+The data and the pre-computed embeddings will now be in
+
+    ./bioacoustic_sed_2024
+
 TODO: upload the pre-computed embeddings.
+
+## Run experiments
+
+    python main.py
+
+The results of the experiment will be in
+
+    ./results/eusipco_2024
+
+
+# Run experiments on modified data
+
+
 
 ## Environment
 Check the requirements.txt for the requirements. In particular we need:
@@ -44,10 +72,7 @@ this should run
 - model training and prediction, and
 - evaluation of models trained with annotations.
 
-# Produce figures and tables
 
-TODO: move relevant logic from notebook to a script which produces
-the tables and figures from default results folder
 
 # Generate the dataset
 
