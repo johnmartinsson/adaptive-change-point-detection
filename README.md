@@ -17,15 +17,32 @@ A repository containing an annotaion framework for bioacoustics
     python figures.py
 
 
-# Prerequisites
-
-## Data
+# Run experiments on the used data
+## Download data and pre-computed embeddings
 
 The dataset can be downloaded from: https://github.com/johnmartinsson/bioacoustics-task
 
+TODO: upload dataset and pre-computed embeddings to Zenodo or GitHub
 TODO: write a script which downloads this and puts it into a default data folder
 
+The data and the pre-computed embeddings will now be in
+
+    ./bioacoustic_sed_2024
+
 TODO: upload the pre-computed embeddings.
+
+## Run experiments
+
+    python main.py
+
+The results of the experiment will be in
+
+    ./results/eusipco_2024
+
+
+# Run experiments on modified data
+
+
 
 ## Environment
 Check the requirements.txt for the requirements. In particular we need:
