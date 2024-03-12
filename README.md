@@ -5,6 +5,17 @@ TODO: remove or move unused scrips, currently you have to scroll for the README.
 
 A repository containing an annotaion framework for bioacoustics
 
+# Produce figures and tables
+    # download the experiments
+    # TODO
+    wget .../experiments.zip
+
+    # produces all tables in the paper
+    python tables.py
+
+    # produces all figures in the paper
+    python figures.py
+
 
 # Prerequisites
 
@@ -44,13 +55,7 @@ this should run
 - model training and prediction, and
 - evaluation of models trained with annotations.
 
-# Produce figures and tables
 
-    # produces all tables in the paper
-    python tables.py
-
-    # produces all figures in the paper
-    python figures.py
 
 # Generate the dataset
 
