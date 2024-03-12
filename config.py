@@ -18,7 +18,7 @@ class Config():
         self.emb_win_length       = 1.0
         self.fp_noise             = 0.0
         self.fn_noise             = 0.0
-        self.strategy_name        = 'OPT'
+        self.strategy_name        = 'ADP'
         self.normal_prototypes    = True
         self.normalize_embeddings = True
         self.noise_factor         = 0.0
@@ -27,7 +27,7 @@ class Config():
         # Data hyperparameters
         self.class_name           = 'baby'
         self.snr                  = 0.0
-        self.results_dir          = 'results/test-2024-02-23'
+        self.results_dir          = '/mnt/storage_1/john/al_for_sed_results/2024-02-24/'
         #self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed/'
         self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed_2024_02_22/'
 
