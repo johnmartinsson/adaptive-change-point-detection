@@ -1,7 +1,9 @@
+import sys
 import os
 import glob
 import numpy as np
 import query_strategies as qs
+import evaluate
 
 def load_pos_ref_aux(base_dir, soundscape_basename):
     ref_path = os.path.join(base_dir, "{}.txt".format(soundscape_basename))
@@ -132,3 +134,65 @@ def load_timings_and_embeddings(base_dir, soundscape_basename, embedding_dim=102
     embeddings = embeddings[indices]
 
     return timings, embeddings
+
+
+def load_annotated_embeddings(conf, sim_dir):
+    # 1. load query strategy with given sample budget as in evaluation
+    emb_win_length = conf.emb_win_length
+    class_name     = conf.class_name
+    idx_run        = 0
+    strategy_name  = conf.strategy_name
+    model_name     = conf.model_name
+    base_dir       = conf.base_dir
+
+    emb_win_length = emb_win_length
+    emb_hop_length = emb_win_length / 4
+    emb_hop_length_str = '{:.2f}'.format(emb_hop_length)
+    emb_win_length_str = '{:.1f}'.format(emb_win_length)
+
+    train_base_dir = conf.train_base_dir #os.path.join(base_dir, 'generated_datasets', '{}_{}_{}s'.format(class_name, emb_win_length_str, emb_hop_length_str), 'train_soundscapes_snr_0.0')
+
+    train_annotation_dir   = os.path.join(sim_dir, str(idx_run), 'train_annotations')
+    print(train_annotation_dir)
+
+    # load train annotations
+    train_annotation_paths = glob.glob(os.path.join(train_annotation_dir, "*.tsv"))
+
+    def get_iteration(fp):
+        return int(os.path.basename(fp).split('_')[1])
+
+    def get_soundscape_basename(fp):
+        return "_".join(os.path.basename(fp).split('_')[2:]).split('.')[0]
+
+    evaluation_budget = 1.0
+
+    # TODO: something goes wrong here with budget 1.0, max over empty list
+    # the problem is most likely solved, the n_runs were inconsistent with the number of runs in the sim_dir
+    n_soundscapes      = np.max([get_iteration(fp) for fp in train_annotation_paths]) + 1
+    n_iter = int(evaluation_budget * n_soundscapes)
+
+    sys.stdout.write("strategy = {}, run = {}, model_name = {}, budget = {}, n_iter = {}\n".format(strategy_name, idx_run, model_name, evaluation_budget, n_iter))
+
+    # 1. load the annotations until n_iter
+    budget_train_annotation_paths = [fp for fp in train_annotation_paths if get_iteration(fp) < n_iter]
+    assert len(budget_train_annotation_paths) == n_iter, "budget not respected, expected {}, got {}".format(n_iter, len(budget_train_annotation_paths))
+    soundscape_basenames          = [get_soundscape_basename(fp) for fp in budget_train_annotation_paths]
+
+    # 2. load embeddings and annotations for the evaluation budget
+    p_embss   = []
+    n_embss   = []
+    for idx, soundscape_basename in enumerate(soundscape_basenames):
+
+        pos_ann = evaluate.get_positive_annotations(budget_train_annotation_paths[idx])
+        p_embs, n_embs, _ = evaluate.get_embeddings_3(pos_ann, train_base_dir, soundscape_basename, emb_win_length)
+        p_embs = np.array(p_embs)
+        n_embs = np.array(n_embs)
+
+        p_embss.append(p_embs)
+        n_embss.append(n_embs)
+
+    # positive and negative embeddings
+    p_embs = np.concatenate(p_embss)
+    n_embs = np.concatenate(n_embss)
+
+    return p_embs, n_embs
