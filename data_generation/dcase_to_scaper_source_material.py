@@ -6,7 +6,7 @@ import numpy as np
 import soundfile as sf
 import argparse
 
-import stats_utils
+import utils
 
 def write_foreground_events_to_dir(wave_path, class_name, annotations, dir_path):
     wave, sample_rate = sf.read(wave_path)
@@ -54,8 +54,8 @@ def write_background_events_to_dir(wave_path, class_name, annotations, dir_path,
 def dcase_to_scaper_source_material(csv_paths, fg_dir, bg_dir, class_name):
     for csv_path in csv_paths:
         n_shots = 1000000
-        pos_anns = stats_utils.get_positive_annotations(csv_path, n_shots=n_shots, class_name=class_name, expand=0.0)
-        neg_anns = stats_utils.get_gap_annotations(csv_path, n_shots=n_shots, class_name=class_name)
+        pos_anns = utils.get_positive_annotations(csv_path, n_shots=n_shots, class_name=class_name, expand=0.0)
+        neg_anns = utils.get_gap_annotations(csv_path, n_shots=n_shots, class_name=class_name)
 
         assert(len(pos_anns) < n_shots)
         assert(len(neg_anns) < n_shots)

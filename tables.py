@@ -9,6 +9,7 @@ import config
 def main():
     conf = config.Config()
     results_dir = conf.results_dir
+    print("results_dir: ", conf.results_dir)
 
     # find all config.yaml files in the results_dir
     config_files = glob.glob(os.path.join(results_dir, '**', 'config.yaml'), recursive=True)
@@ -92,7 +93,7 @@ def main():
 
                             segment_stds.append(std_df[metric_name].values[0])
 
-                            n_runs = 10
+                            n_runs = int(conf.n_runs) #10
                             n_classes = 3
                             assert(len(_df) == n_runs)
 

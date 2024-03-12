@@ -1,6 +1,27 @@
-import models
-import oracles
-import datasets
+import pandas as pd
+
+def get_positive_annotations(csv_path, n_shots, class_name, expand=0.0):
+    ann_df = pd.read_csv(csv_path)
+    ann_df = ann_df.sort_values('Starttime')
+    ref_pos_indexes = ann_df.index[ann_df[class_name] == 'POS'].tolist()
+    ann_nshot_df = ann_df.loc[ref_pos_indexes[:n_shots]]
+
+    start_times = ann_nshot_df['Starttime'].tolist()
+    start_times = [start_time - expand for start_time in start_times]
+
+    end_times = ann_nshot_df['Endtime'].tolist()
+    end_times = [end_time + expand for end_time in end_times]
+
+    return list(zip(start_times, end_times))
+
+def get_gap_annotations(csv_path, n_shots, class_name):
+    pos_annotations = get_positive_annotations(csv_path, n_shots, class_name)
+    start_times, end_times = list(zip(*pos_annotations))
+    # a bit confusing, but true
+    _end_times   = start_times[1:]
+    _start_times = end_times[:-1]
+ 
+    return list(zip(_start_times, _end_times))
 
 def sort_by_rank(ranks, values, reverse=True):
     return [x[1] for x in sorted(list(zip(ranks, values)), key=lambda x: x[0], reverse=reverse)]
@@ -14,19 +35,3 @@ def shift_bit_length(x):
 
 def next_power_of_2(x):
     return shift_bit_length(x)
-
-def get_active_dataset_by_config(config, data_dir):
-    print("Getting active dataset ...")
-    return datasets.ActiveSoundEventDetectionDataset(config, data_dir)
-
-def get_active_learner_by_config(config):
-    print("Getting active learner ...")
-    return models.BaseActiveLearner()
-
-def get_oracle_by_config(config):
-    print("Getting oracle by config ...")
-    return oracles.BaseOracle()
-
-def get_test_dataset_by_config(config, data_dir):
-    print("Getting test dataset ...")
-    return datasets.SoundEventDetectionDataset(config, data_dir)

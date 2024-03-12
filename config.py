@@ -27,7 +27,7 @@ class Config():
         # Data hyperparameters
         self.class_name           = 'baby'
         self.snr                  = 0.0
-        self.results_dir          = '/mnt/storage_1/john/al_for_sed_results/2024-02-24/'
+        self.results_dir          = '/mnt/storage_1/john/al_for_sed_results/2024-03-12/'
         #self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed/'
         self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed_2024_02_22/'
 
@@ -36,7 +36,7 @@ class Config():
         self.model_name         = 'prototypical'
 
         # Evaluation hyperparameters
-        self.t_collar           = 2.0
+        self.t_collar           = 0.5
         self.time_resolution    = 0.05
 
         # load the config from the given sim_dir

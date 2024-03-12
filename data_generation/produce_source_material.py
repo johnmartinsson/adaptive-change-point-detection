@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.abspath('../'))
 
-import stats_utils
+import utils
 
 import glob
 import argparse
@@ -160,7 +160,7 @@ def write_foreground_events_to_dir(wave_path, annotations, source_base_dir, clas
 def dcase_to_scaper_source_material(csv_paths, source_base_dir, class_name):
     for csv_path in csv_paths:
         n_shots = 1000000
-        pos_anns = stats_utils.get_positive_annotations(csv_path, n_shots=n_shots, class_name='Q', expand=0.0)
+        pos_anns = utils.get_positive_annotations(csv_path, n_shots=n_shots, class_name='Q', expand=0.0)
 
         assert(len(pos_anns) < n_shots)
 
