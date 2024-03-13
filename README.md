@@ -22,10 +22,10 @@ Currently under review for EUSIPCO 2024. Cite as:
     unzip results_eusipco_2024.zip
 
     # produces all tables in the paper
-    python tables.py
+    python src/tables.py
 
     # produces all figures in the paper
-    python figures.py
+    python src/figures.py
 
 The figures are saved to the directory
 
@@ -54,11 +54,11 @@ This is the minimum requirement to run the simulations.
 
 ### Run experiments
 
-    python main.py
+    python src/main.py
 
 The results of the experiment will be in
 
-    ./results/eusipco_2024
+    ./results/eusipco_2024_reproduced
 
 ### Produce figures and tables
 
