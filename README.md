@@ -27,27 +27,24 @@ Currently under review for EUSIPCO 2024. Cite as:
     # produces all figures in the paper
     python figures.py
 
-The figures in
+The figures are saved to the directory
 
-    ./results/figures
+    ./results/figures_reproduced
 
-Have now been overwritten with figures derived directly from the results
-
-## Run experiments on the used data
+## Run experiments on the pre-generated datasets
 This section explains how to reproduce the EUSIPCO 2024 results, they will be put in the directory
 
     results/eusipco_2024_reproduced
 
 ### Download data and pre-computed embeddings
 
-    git lfs clone https://github.com/johnmartinsson/adaptive-change-point-detection.git
+    wget <zenodo>/data.zip
+    unzip data.zip
+    
+The pre-computed embeddings and labels for the generated datasets will now be in
 
-The data and the pre-computed embeddings will now be in
-
-    ./data/embeddings_and_labels.zip
-    cd ./data
-    unzip embeddings_and_labels.zip
-
+    ./data/
+    
 This is the minimum requirement to run the simulations.
 
 ### Setup environment
@@ -71,3 +68,6 @@ Please update the config.py script after this and change
     results_dir : eusipco_2024_reproduced
 
 Then produce the figures and tables in the same way as described above. If you do not change this line, the produced figures and tables will be from the uploaded eusipco_2024 results.
+
+## Run experiments on generated datasets
+A description on how to download all the audio source material and how to use the scripts to generate the datasets and compute the embeddings using BirdNET will be made available upon demand. Please contact the main author of the paper.
