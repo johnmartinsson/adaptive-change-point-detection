@@ -1,4 +1,4 @@
-# From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning
+# From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection (A-CPD) and Active Learning
 
 ![Figure 2](results/figures/figure_2.png)
 
