@@ -2,12 +2,14 @@
 
 ![Figure 2](results/figures/figure_2.png)
 
+This repository contains the code used to produce the results in the paper "From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning". The above figure illustrates the studied annotaion strategies, where adaptive change point detection (A-CPD) is the one proposed in our work. The idea is to derive strong sound event labels using a weak label annotator.
 
-TODO: add primary method image
-TODO: remove or move unused scrips, currently you have to scroll for the README.
-
-
-A repository containing an annotaion framework for bioacoustics
+    @article{Martinsson2024,
+      title={From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning},
+      author={Martinsson, John and Mogren, Olof and Sandsten, Maria and Virtanen, Tuomas},
+      journal={arXiv preprint arXiv:...},
+      year={2024}
+    }
 
 # Produce figures and tables
     # download the experiments
