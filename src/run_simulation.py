@@ -10,7 +10,7 @@ import copy
 import glob
 
 import models
-import evaluate
+import predict
 import sound_event_eval
 
 import argparse
@@ -26,7 +26,7 @@ def simulate_strategy(query_strategy, soundscape_basenames, n_queries, base_dir,
     next_soundscape_basename = query_strategy.next_soundscape_basename(soundscape_basenames)
 
     # evaluate label-quality and get embeddings and annotations
-    f1_score, mean_iou_score, p_embeddings, n_embeddings, pos_pred, used_queries = evaluate.evaluate_query_strategy( # TODO: this should probably be moved to the query strategy class
+    f1_score, mean_iou_score, p_embeddings, n_embeddings, pos_pred, used_queries = predict.evaluate_query_strategy( # TODO: this should probably be moved to the query strategy class
         base_dir            = base_dir,
         soundscape_basename = next_soundscape_basename,
         query_strategy      = query_strategy,
@@ -143,7 +143,7 @@ def run(conf):
     # TODO: check all runs, and only start from the ones that are missing ...
     if not os.path.exists(os.path.join(conf.sim_dir, '0', 'test_scores', conf.model_name)):
         print("Predicting test and train data ...")
-        evaluate.predict_test_and_train(conf)
+        predict.predict_test_and_train(conf)
 
     #######################################################################################
     # Evaluate the predictions

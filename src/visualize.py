@@ -5,7 +5,7 @@ from scipy.signal import find_peaks
 
 import matplotlib.pyplot as plt
 
-import evaluate
+import predict
 import warnings
 import models
 import utils
@@ -174,7 +174,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
 
     pred_pos_events = oracle.pos_events_from_queries(pred_queries, soundscape_basename)
 
-    _, _, embs_label = evaluate.get_embeddings_3(pred_pos_events, base_dir, soundscape_basename, emb_win_length)
+    _, _, embs_label = predict.get_embeddings_3(pred_pos_events, base_dir, soundscape_basename, emb_win_length)
 
     ts_probas = np.mean(timings, axis=1)
 
@@ -298,7 +298,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
 
         pred_pos_events = oracle.pos_events_from_queries(pred_queries, soundscape_basename)
 
-        _, _, embs_label = evaluate.get_embeddings_3(pred_pos_events, base_dir, soundscape_basename, emb_win_length)
+        _, _, embs_label = predict.get_embeddings_3(pred_pos_events, base_dir, soundscape_basename, emb_win_length)
 
         ts_probas = np.mean(timings, axis=1)
 
@@ -443,7 +443,7 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
 
         pred_pos_events = oracle.pos_events_from_queries(pred_queries, soundscape_basename)
 
-        _, _, embs_label = evaluate.get_embeddings_3(pred_pos_events, base_dir, soundscape_basename, emb_win_length)
+        _, _, embs_label = predict.get_embeddings_3(pred_pos_events, base_dir, soundscape_basename, emb_win_length)
 
         ts_probas = np.mean(timings, axis=1)
 

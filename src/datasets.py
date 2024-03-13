@@ -3,7 +3,7 @@ import os
 import glob
 import numpy as np
 import query_strategies as qs
-import evaluate
+import predict
 
 def load_pos_ref_aux(base_dir, soundscape_basename):
     ref_path = os.path.join(base_dir, "{}.txt".format(soundscape_basename))
@@ -183,8 +183,8 @@ def load_annotated_embeddings(conf, sim_dir):
     n_embss   = []
     for idx, soundscape_basename in enumerate(soundscape_basenames):
 
-        pos_ann = evaluate.get_positive_annotations(budget_train_annotation_paths[idx])
-        p_embs, n_embs, _ = evaluate.get_embeddings_3(pos_ann, train_base_dir, soundscape_basename, emb_win_length)
+        pos_ann = predict.get_positive_annotations(budget_train_annotation_paths[idx])
+        p_embs, n_embs, _ = predict.get_embeddings_3(pos_ann, train_base_dir, soundscape_basename, emb_win_length)
         p_embs = np.array(p_embs)
         n_embs = np.array(n_embs)
 
