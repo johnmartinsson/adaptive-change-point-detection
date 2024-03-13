@@ -1,4 +1,8 @@
 # From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning
+
+![Figure 2](results/figures/figure_2.png)
+
+
 TODO: add primary method image
 TODO: remove or move unused scrips, currently you have to scroll for the README.
 
