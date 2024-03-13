@@ -27,9 +27,8 @@ class Config():
         # Data hyperparameters
         self.class_name           = 'baby'
         self.snr                  = 0.0
-        self.results_dir          = '/mnt/storage_1/john/al_for_sed_results/2024-03-12/'   #'./eusipco_2024'
-        #self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed/'
-        self.base_dir             = '/mnt/storage_1/john/data/bioacoustic_sed_2024_02_22/' #'./data/generated_datasets' 
+        self.results_dir          = './results/eusipco_2024'
+        self.base_dir             = './data/' 
 
         # Prediction hyperparameters
         self.evaluation_budgets = [1.0]

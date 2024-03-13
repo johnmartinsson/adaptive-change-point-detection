@@ -179,7 +179,7 @@ def get_embeddings_3(pos_ann, base_dir, soundscape_basename, emb_win_length):
 
 # TODO: include this in default loop
 def evaluate_annotation_process_on_test_data(query_strategy, base_dir, n_queries, noise_factor, fp_noise=0.0, fn_noise=0.0):
-    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
+    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.jams"))]
 
     f1s   = []
     mious = []
@@ -220,7 +220,7 @@ def predict_test_data(model, base_dir, scores_dir, emb_win_length, class_name):
         os.makedirs(os.path.join(scores_dir, 'segment_based'))
 
     #print(base_dir)
-    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
+    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.jams"))]
     for soundscape_basename in soundscape_basenames:
         timings, embeddings  = datasets.load_timings_and_embeddings(base_dir, soundscape_basename)
         probas = model.predict_proba(embeddings)
@@ -281,7 +281,7 @@ def predict_train_data(sim_dir, base_dir, class_name, method_name, idx_run, emb_
     #print("Class: {}, Method: {}, Run: {}".format(class_name, method_name, idx_run))
             
     run_dir                     = os.path.join(sim_dir, str(idx_run))
-    train_soundscape_file_paths = glob.glob(os.path.join(base_dir, '*.wav'))
+    train_soundscape_file_paths = glob.glob(os.path.join(base_dir, '*.jams'))
     train_annotation_file_paths = glob.glob(os.path.join(run_dir, 'train_annotations', '*.tsv'))
     train_scores_dir            = os.path.join(run_dir, 'train_scores')
 
@@ -329,7 +329,7 @@ def predict_train_data(sim_dir, base_dir, class_name, method_name, idx_run, emb_
 
 
 def evaluate_model_on_test_data(query_strategy, base_dir, threshold=0.5):
-    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.wav"))]
+    soundscape_basenames = [os.path.basename(b).split('.')[0] for b in glob.glob(os.path.join(base_dir, "*.jams"))]
 
     f1s   = []
     mious = []

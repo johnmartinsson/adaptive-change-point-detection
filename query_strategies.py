@@ -7,11 +7,11 @@ import change_point_detection as cpd
 
 def get_soundscape_length(base_dir, soundscape_name):
 
-    wav_path = os.path.join(base_dir, '{}.wav'.format(soundscape_name))
-    wave, sr = librosa.load(wav_path, sr=None)
-    soundscape_length = len(wave) / sr
+    #wav_path = os.path.join(base_dir, '{}.wav'.format(soundscape_name))
+    #wave, sr = librosa.load(wav_path, sr=None)
+    #soundscape_length = len(wave) / sr
 
-    return soundscape_length
+    return 30#soundscape_length
 
 def fixed_query_strategy(n_queries, base_dir, soundscape_name, soundscape_length):
     fix_queries = np.linspace(0, soundscape_length, n_queries+1)
