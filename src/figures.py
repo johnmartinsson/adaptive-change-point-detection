@@ -42,7 +42,7 @@ def main():
 
     new_query_strategy_names = ['A-CPD', 'F-CPD', 'FIX']
 
-    fig_dir = 'results/figures/'
+    fig_dir = 'results/figures_reproduced/'
     if not os.path.exists(fig_dir):
         os.makedirs(fig_dir)
 
