@@ -38,9 +38,11 @@ The figures are saved to the directory
 
     python src/main.py
 
-This will run all experiments presented in the paper and store the results in
+This will run all experiments presented in the paper and store the results in,
 
     ./results/eusipco_2024_reproduced
+
+However, only 2 runs are made per configuration to save time since the standard devaition is so low. Results should be similar, but may vary slightly.
 
 Please update the config.py script after this and change
 
