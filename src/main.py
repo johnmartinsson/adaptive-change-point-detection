@@ -19,9 +19,9 @@ def run_strategy(strategy_name): #, n_queriess, prominence_thresholds, coverage_
     coverage_thresholds   = [0.5]
     class_names           = ['me', 'dog', 'baby']
     model_names           = ['prototypical', 'mlp']
-    n_runs                = 1 #10
-    results_dir           = './results/eusipco_2024_reproduced' #'/mnt/storage_1/john/eusipco_2024/' #al_for_sed_results/2024-03-12'
-    noises                = [0.0] #[0.0, 0.2]
+    n_runs                = 2
+    results_dir           = './results/eusipco_2024_reproduced'
+    noises                = [0.0, 0.2]
     
     conf.results_dir = results_dir
     conf.n_runs      = n_runs
