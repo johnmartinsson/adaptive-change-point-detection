@@ -18,18 +18,11 @@ Currently under review for EUSIPCO 2024. Cite as:
 
 ## Setup environment and download datasets
 
-    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-    pip3 install -r requirements.txt
-
-    wget <zenodo>/data.zip
-    wget <zenodo>/results_eusipco_2024.zip
-    unzip data.zip
-    unzip results_eusipco_2024.zip
-
-or simply run
     bash doit.sh
 
-## Create figures and tables
+Please read the doit.sh file first. This will install packages using pip, and download all necessary material to reproduce all figures and tables presented in the paper.
+
+## Reproduce figures and tables using pre-computed result files
 
     # produces all tables in the paper
     python src/tables.py
@@ -41,22 +34,26 @@ The figures are saved to the directory
 
     ./results/figures_reproduced
 
-## Run experiments on the pre-generated datasets
+## Reproduce figures and tables using re-computed result files
 
     python src/main.py
 
-The results of the experiment will be in
+This will run all experiments presented in the paper and store the results in
 
     ./results/eusipco_2024_reproduced
-
-### Create reproduced figures and tables
 
 Please update the config.py script after this and change
 
     results_dir : eusipco_2024 # to
     results_dir : eusipco_2024_reproduced
 
-Then produce the figures and tables in the same way as described above. If you do not change this line, the produced figures and tables will be from the uploaded eusipco_2024 results.
+If you do not change this line, the produced figures and tables will be from the pre-computed eusipco_2024 results. Then run
+
+    # produces all tables in the paper
+    python src/tables.py
+
+    # produces all figures in the paper
+    python src/figures.py
 
 ## Run experiments on generated datasets
 A description on how to download all the audio source material and how to use the scripts to generate the datasets and compute the embeddings using BirdNET will be made available upon demand. Please contact the main author of the paper.
