@@ -16,11 +16,20 @@ Currently under review for EUSIPCO 2024. Cite as:
       year={2024}
     }
 
-## Produce figures and tables
-    # download the experiments
-    # TODO
+## Setup environment and download datasets
+
+    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+    pip3 install -r requirements.txt
+
+    wget <zenodo>/data.zip
     wget <zenodo>/results_eusipco_2024.zip
+    unzip data.zip
     unzip results_eusipco_2024.zip
+
+or simply run
+    bash doit.sh
+
+## Create figures and tables
 
     # produces all tables in the paper
     python src/tables.py
@@ -33,27 +42,6 @@ The figures are saved to the directory
     ./results/figures_reproduced
 
 ## Run experiments on the pre-generated datasets
-This section explains how to reproduce the EUSIPCO 2024 results, they will be put in the directory
-
-    results/eusipco_2024_reproduced
-
-### Download data and pre-computed embeddings
-
-    wget <zenodo>/data.zip
-    unzip data.zip
-    
-The pre-computed embeddings and labels for the generated datasets will now be in
-
-    ./data/
-    
-This is the minimum requirement to run the simulations.
-
-### Setup environment
-
-    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-    pip3 install -r requirements.txt
-
-### Run experiments
 
     python src/main.py
 
@@ -61,7 +49,7 @@ The results of the experiment will be in
 
     ./results/eusipco_2024_reproduced
 
-### Produce figures and tables
+### Create reproduced figures and tables
 
 Please update the config.py script after this and change
 
