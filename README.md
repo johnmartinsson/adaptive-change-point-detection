@@ -20,16 +20,15 @@ A repository containing an annotaion framework for bioacoustics
 # Run experiments on the used data
 ## Download data and pre-computed embeddings
 
-The dataset can be downloaded from: https://github.com/johnmartinsson/bioacoustics-task
-
-TODO: upload dataset and pre-computed embeddings to Zenodo or GitHub
-TODO: write a script which downloads this and puts it into a default data folder
+    git lfs clone https://github.com/johnmartinsson/adaptive-change-point-detection.git
 
 The data and the pre-computed embeddings will now be in
 
-    ./bioacoustic_sed_2024
+    ./data/embeddings_and_labels.zip
+    cd ./data
+    unzip embeddings_and_labels.zip
 
-TODO: upload the pre-computed embeddings.
+This is the minimum requirement to run the simulations.
 
 ## Setup environment
 
