@@ -20,7 +20,7 @@ Currently under review for EUSIPCO 2024. Cite as:
 
     bash doit.sh
 
-Please read the doit.sh file first. This will install packages using pip, and download all necessary material to reproduce all figures and tables presented in the paper.
+Please read the doit.sh file.
 
 ## Reproduce figures and tables using pre-computed result files
 
