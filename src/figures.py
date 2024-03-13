@@ -17,8 +17,8 @@ def main():
     sim_dir = conf.sim_dir
     print("sim_dir: ", sim_dir)
     # load the annotated embeddings
-    p_embs, n_embs = datasets.load_annotated_embeddings(conf, sim_dir)
     conf.strategy_name = 'ADP'
+    p_embs, n_embs = datasets.load_annotated_embeddings(conf, sim_dir)
     adp_model = models.AdaptiveQueryStrategy(conf)
     # update the model with the annotated embeddings
     adp_model.update(p_embs, n_embs)
