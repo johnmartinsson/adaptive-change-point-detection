@@ -45,7 +45,7 @@ This will run all experiments presented in the paper and store the results in,
 
 However, only 2 runs are made per configuration to save time since the standard devaition is so low. Results should be similar, but may vary slightly.
 
-Please update the config.py script after this and change
+Please update the src/config.py script after this and change
 
     results_dir : eusipco_2024 # to
     results_dir : eusipco_2024_reproduced
