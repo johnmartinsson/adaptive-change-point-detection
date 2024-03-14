@@ -22,6 +22,7 @@ def main():
     adp_model = models.AdaptiveQueryStrategy(conf)
     # update the model with the annotated embeddings
     adp_model.update(p_embs, n_embs)
+    conf.pretty_print()
 
     # F-CPD
     conf = config.Config()
