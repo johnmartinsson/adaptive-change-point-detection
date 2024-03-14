@@ -17,25 +17,15 @@ Currently under review for EUSIPCO 2024. Cite as:
           primaryClass={cs.SD}
     }
 
-## Setup environment and download datasets
+## Just do it
 
     bash doit.sh
 
-Please read the doit.sh file.
+If you are a bit more careful you could read the doit.sh file and execute each command by itself. This will download the data and experiment results presented in the paper from Zenodo (make sure that the wget download is not corrupted), and produce all tables as standard output and all figures are stored in the directory
 
-## Reproduce figures and tables using pre-computed result files
+    './results/figures_reproduced'
 
-    # produces all tables in the paper
-    python src/tables.py
-
-    # produces all figures in the paper
-    python src/figures.py
-
-The figures are saved to the directory
-
-    ./results/figures_reproduced
-
-## Reproduce figures and tables using re-computed result files
+## Reproduce figures and tables using reproduced experiment results
 
     python src/main.py
 
@@ -43,11 +33,10 @@ This will run all experiments presented in the paper and store the results in,
 
     ./results/eusipco_2024_reproduced
 
-However, only 2 runs are made per configuration to save time since the standard devaition is so low. Results should be similar, but may vary slightly.
+In the interest of time only 2 runs are done by default per configuration since the standard devaition is so low. All results should be similar, but may vary slightly.
 
 Please update the src/config.py script after this and change
 
-    results_dir : eusipco_2024 # to
     results_dir : eusipco_2024_reproduced
 
 If you do not change this line, the produced figures and tables will be from the pre-computed eusipco_2024 results. Then run
