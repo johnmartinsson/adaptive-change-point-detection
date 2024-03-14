@@ -170,7 +170,7 @@ def visualize_query_strategy(query_strategy, query_strategy_name, soundscape_bas
     else:
         pred_queries = models.queries_from_probas(pred_probas, timings, n_queries, soundscape_length, prominence_threshold=prominence_threshold)
         pred_queries = sorted(pred_queries, key=lambda x: x[0])
-    print("method = {}, n_queries = {}".format(query_strategy_name, len(pred_queries)))
+    #print("method = {}, n_queries = {}".format(query_strategy_name, len(pred_queries)))
 
     pred_pos_events = oracle.pos_events_from_queries(pred_queries, soundscape_basename)
 
@@ -294,7 +294,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
         else:
             pred_queries = models.queries_from_probas(pred_probas, timings, n_queries, soundscape_length, prominence_threshold=prominence_threshold)
             pred_queries = sorted(pred_queries, key=lambda x: x[0])
-        print("method = {}, n_queries = {}".format(query_strategy_name, len(pred_queries)))
+        #print("method = {}, n_queries = {}".format(query_strategy_name, len(pred_queries)))
 
         pred_pos_events = oracle.pos_events_from_queries(pred_queries, soundscape_basename)
 
@@ -322,7 +322,7 @@ def visualize_query_strategies(query_strategies, query_strategy_names, new_query
         ax[0].set_xlabel('')
         
         to_plot = np.flip(np.log(mel_spectrogram + 1e-4), axis=0)
-        print(to_plot.shape)
+        #print(to_plot.shape)
         to_plot = to_plot[0:96, :]
         ax[0].imshow(to_plot, aspect='auto', cmap='Greys')
         ax[0].set_title("Audio recording with baby cries")
@@ -439,7 +439,7 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
         else:
             pred_queries = models.queries_from_probas(pred_probas, timings, n_queries, soundscape_length, prominence_threshold=prominence_threshold)
             pred_queries = sorted(pred_queries, key=lambda x: x[0])
-        print("method = {}, n_queries = {}".format(query_strategy_name, len(pred_queries)))
+        #print("method = {}, n_queries = {}".format(query_strategy_name, len(pred_queries)))
 
         pred_pos_events = oracle.pos_events_from_queries(pred_queries, soundscape_basename)
 
@@ -467,7 +467,7 @@ def visualize_concept(query_strategies, query_strategy_names, soundscape_basenam
         ax[0].set_xlabel('')
         
         to_plot = np.flip(np.log(mel_spectrogram + 1e-4), axis=0)
-        print(to_plot.shape)
+        #print(to_plot.shape)
         to_plot = to_plot[0:96, :]
         ax[0].imshow(to_plot, aspect='auto', cmap='Greys')
         ax[0].set_title("Audio recording with baby cries")
