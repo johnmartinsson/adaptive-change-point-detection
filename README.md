@@ -47,5 +47,5 @@ If you do not change this line, the produced figures and tables will be from the
     # produces all figures in the paper
     python src/figures.py
 
-## Reproduce figures and tables using re-generated audio datasets
+## Reproduce figures and tables using reproduced audio mixture datasets
 A description on how to download all the audio source material and how to use the scripts to generate the datasets and compute the embeddings using BirdNET will be made available upon demand. Please contact the main author of the paper.
