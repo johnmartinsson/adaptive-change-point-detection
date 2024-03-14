@@ -2,19 +2,19 @@
 
 ![Figure 2](results/figures/figure_2.png)
 
-- __TODO__: update with arXiv link (soon).
-- __TODO__: update with Zenodo links (soon).
-- __TODO__: update with proper citation (soon).
+- __TODO__: update with Zenodo links (data published soon).
 
-Official PyTorch implementation of the A-CPD method presented in the paper [From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning](https://arxiv.org), by [John Martinsson](https://johnmartinsson.github.io), [Olof Mogren](https://mogren.one), [Maria Sandsten](https://www.maths.lu.se/english/research/staff/mariasandsten/), and [Tuomas Virtanen](https://homepages.tuni.fi/tuomas.virtanen/)
+Official PyTorch implementation of the A-CPD method presented in the paper [From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning](https://arxiv.org/abs/2403.08525), by [John Martinsson](https://johnmartinsson.github.io), [Olof Mogren](https://mogren.one), [Maria Sandsten](https://www.maths.lu.se/english/research/staff/mariasandsten/), and [Tuomas Virtanen](https://homepages.tuni.fi/tuomas.virtanen/)
 
 Currently under review for EUSIPCO 2024. Cite as:
 
-    @article{Martinsson2024,
-      title={From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning},
-      author={Martinsson, John and Mogren, Olof and Sandsten, Maria and Virtanen, Tuomas},
-      journal={arXiv preprint arXiv:...},
-      year={2024}
+    @misc{Martinsson2024,
+          title={From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning}, 
+          author={John Martinsson and Olof Mogren and Maria Sandsten and Tuomas Virtanen},
+          year={2024},
+          eprint={2403.08525},
+          archivePrefix={arXiv},
+          primaryClass={cs.SD}
     }
 
 ## Setup environment and download datasets
