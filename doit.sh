@@ -1,5 +1,5 @@
-wget <zenodo>/data.zip
-wget <zenodo>/results_eusipco_2024.zip
+wget https://zenodo.org/records/10811797/files/results_eusipco_2024.zip
+wget https://zenodo.org/records/10811797/files/data.zip
 unzip data.zip
 unzip results_eusipco_2024.zip
 
