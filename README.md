@@ -18,6 +18,7 @@ Currently under review for EUSIPCO 2024. Cite as:
     }
 
 ## Just do it
+This command requires ~17GB of free disk space.
 
     bash doit.sh
 
