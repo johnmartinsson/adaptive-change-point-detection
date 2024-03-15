@@ -26,7 +26,7 @@ This will reproduce all tables as standard output, and save all figures in
 
     './results/figures_reproduced'
 
-If you are a bit more careful you could read through the doit.sh file and execute each command by itself.
+If you are a bit more careful you could go through the doit.sh file and execute each command by itself.
 
 ## Reproduce figures and tables using reproduced experiment results
 
