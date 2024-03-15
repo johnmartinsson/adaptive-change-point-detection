@@ -18,13 +18,15 @@ Currently under review for EUSIPCO 2024. Cite as:
     }
 
 ## Just do it
-This command requires ~17GB of free disk space.
+Please read the doit.sh file. This command requires ~17GB of free disk space.
 
     bash doit.sh
 
-If you are a bit more careful you could read the doit.sh file and execute each command by itself. This will download the data and experiment results presented in the paper from Zenodo (make sure that the wget download is not corrupted), and produce all tables as standard output and all figures are stored in the directory
+This will reproduce all figures and tables of the paper.
 
-    './results/figures_reproduced'
+'./results/figures_reproduced'
+
+If you are a bit more careful you could read through the doit.sh file and execute each command by itself.
 
 ## Reproduce figures and tables using reproduced experiment results
 
