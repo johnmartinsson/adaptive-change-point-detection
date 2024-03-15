@@ -1,3 +1,4 @@
+import os
 import run_simulation
 import config
 import concurrent.futures
@@ -43,8 +44,13 @@ def run_strategy(strategy_name): #, n_queriess, prominence_thresholds, coverage_
                             conf.model_name           = model_name
 
                             # run the simulation
-                            print("config: {}".format(conf.__dict__))
-                            run_simulation.run(conf)
+                            if os.path.exists(conf.sim_dir):
+                                print("Simulation directory {} already exists. Skipping ...".format(conf.sim_dir))
+                                continue
+                            else:
+                                print("Running simulation with the following configuration:")
+                                conf.pretty_print()
+                                run_simulation.run(conf)
 
 def main():
 
