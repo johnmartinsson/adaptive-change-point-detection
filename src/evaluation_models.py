@@ -20,7 +20,8 @@ class MLP(nn.Module):
     
 class MLPClassifier():
     def __init__(self, input_size, hidden_size, output_size, verbose=True, max_epochs=100, patience=10, batch_size=64):
-        self.model     = MLP(input_size, hidden_size, output_size)
+        self.device    = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model     = MLP(input_size, hidden_size, output_size).to(self.device)
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=3e-4)
         
@@ -32,8 +33,8 @@ class MLPClassifier():
     def fit(self, X, y):
         """Fit the model to the data using Adam optimizer"""
 
-        X = torch.from_numpy(X).float()
-        y = torch.from_numpy(y).long()
+        X = torch.from_numpy(X).float().to(self.device)
+        y = torch.from_numpy(y).long().to(self.device)
 
         # normalize the data to zero mean unit variance
         #X = (X - X.mean(dim=0)) / (X.std(dim=0) + 1e-10)
@@ -51,6 +52,7 @@ class MLPClassifier():
             self.model.train()
             running_train_loss = 0.0
             for batch_idx, (data, target) in enumerate(train_dataset_loader):
+                data, target = data.to(self.device), target.to(self.device)
                 self.optimizer.zero_grad()
                 output = self.model(data)
                 loss = self.criterion(output, target)
@@ -68,6 +70,7 @@ class MLPClassifier():
                 self.model.eval()
                 running_valid_loss = 0.0
                 for batch_idx, (data, target) in enumerate(valid_dataset_loader):
+                    data, target = data.to(self.device), target.to(self.device)
                     output = self.model(data)
                     loss = self.criterion(output, target)
                     valid_loss = loss.item()
