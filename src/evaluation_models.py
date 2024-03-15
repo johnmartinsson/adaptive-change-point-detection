@@ -92,10 +92,10 @@ class MLPClassifier():
                 break
 
     def predict_proba(self, x):
-        x = torch.from_numpy(x).float()
+        x = torch.from_numpy(x).float().to(self.device)
         with torch.no_grad():
             return self.model(x).numpy()
         
     def predict(self, x):
-        x = torch.from_numpy(x).float()
+        x = torch.from_numpy(x).float().to(self.device)
         return torch.argmax(self.predict_proba(x), dim=1).numpy()
