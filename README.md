@@ -18,25 +18,28 @@ Currently under review for EUSIPCO 2024. Cite as:
     }
 
 ## Just do it
-This command requires ~17GB of free disk space.
+Please read the doit.sh file. This command requires ~17GB of free disk space.
 
     bash doit.sh
 
-If you are a bit more careful you could read the doit.sh file and execute each command by itself. This will download the data and experiment results presented in the paper from Zenodo (make sure that the wget download is not corrupted), and produce all tables as standard output and all figures are stored in the directory
+This will reproduce all tables as standard output, and save all figures in
 
     './results/figures_reproduced'
 
+If you are a bit more careful you could go through the doit.sh file and execute each command by itself.
+
 ## Reproduce figures and tables using reproduced experiment results
 
-    python src/main.py
+    bash doit.sh         # if you did not already run this    
+    python src/main.py   # reproduce all simulated annotations
 
 This will run all experiments presented in the paper and store the results in,
 
     ./results/eusipco_2024_reproduced
 
-In the interest of time only 2 runs are done by default per configuration since the standard devaition is so low. All results should be similar, but may vary slightly.
+In the interest of time only 2 runs per configuration are done by default since the standard devaition is so low. All results should be similar, but may vary slightly.
 
-Please update the src/config.py script after this and change to
+Now update the src/config.py script and change to
 
     results_dir : eusipco_2024_reproduced
 
