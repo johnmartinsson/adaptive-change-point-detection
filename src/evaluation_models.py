@@ -94,8 +94,8 @@ class MLPClassifier():
     def predict_proba(self, x):
         x = torch.from_numpy(x).float().to(self.device)
         with torch.no_grad():
-            return self.model(x).numpy()
+            return self.model(x).cpu().numpy()
         
     def predict(self, x):
         x = torch.from_numpy(x).float().to(self.device)
-        return torch.argmax(self.predict_proba(x), dim=1).numpy()
+        return torch.argmax(self.predict_proba(x), dim=1).cpu().numpy()
