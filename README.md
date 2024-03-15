@@ -22,7 +22,7 @@ Please read the doit.sh file. This command requires ~17GB of free disk space.
 
     bash doit.sh
 
-This will reproduce all figures and tables of the paper.
+This will reproduce all tables as standard output, and save all figures in
 
     './results/figures_reproduced'
 
