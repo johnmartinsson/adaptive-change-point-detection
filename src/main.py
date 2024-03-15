@@ -44,13 +44,9 @@ def run_strategy(strategy_name): #, n_queriess, prominence_thresholds, coverage_
                             conf.model_name           = model_name
 
                             # run the simulation
-                            if os.path.exists(conf.sim_dir):
-                                print("Simulation directory {} already exists. Skipping ...".format(conf.sim_dir))
-                                continue
-                            else:
-                                print("Running simulation with the following configuration:")
-                                conf.pretty_print()
-                                run_simulation.run(conf)
+                            print("Running simulation with the following configuration:")
+                            conf.pretty_print()
+                            run_simulation.run(conf)
 
 def main():
 
@@ -60,6 +56,7 @@ def main():
     # parallellize over startegy names
     strategy_names        = ['OPT', 'ADP', 'CPD', 'FIX']
 
+    # TODO: create all configs here and parallelize over them instead of methods.
     with concurrent.futures.ProcessPoolExecutor() as executor:
         executor.map(run_strategy, strategy_names)
 
