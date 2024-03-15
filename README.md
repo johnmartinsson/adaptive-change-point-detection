@@ -30,8 +30,8 @@ If you are a bit more careful you could go through the doit.sh file and execute 
 
 ## Reproduce figures and tables using reproduced experiment results
 
-    bash doit.sh # if you did not already run this    
-    python src/main.py
+    bash doit.sh         # if you did not already run this    
+    python src/main.py   # reproduce all simulated annotations
 
 This will run all experiments presented in the paper and store the results in,
 
