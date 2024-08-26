@@ -6,7 +6,7 @@ Official PyTorch implementation of the A-CPD method presented in the paper [From
 
 [EUSIPCO 2024](https://eurasip.org/Proceedings/Eusipco/Eusipco2024/pdfs/0000902.pdf) | [arXiv](https://arxiv.org/abs/2403.08525) | [Zenodo](https://zenodo.org/records/10811797)
 
-Accepted for publication at EUSIPCO 2024. Cite as:
+Accepted for publication at EUSIPCO 2024 (and nominated as best student paper). For now, cite as:
     
     @misc{Martinsson2024,
           title={From Weak to Strong Sound Event Labels using Adaptive Change-Point Detection and Active Learning}, 
